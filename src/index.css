@@ -1,0 +1,619 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   DESIGN TOKEN SYSTEM — CSS CUSTOM PROPERTIES
+   ============================================================ */
+:root {
+  /* Backgrounds — layered depth system */
+  --bg-void: #050709;
+  --bg-base: #080C14;
+  --bg-surface: #0C1220;
+  --bg-card: #101828;
+  --bg-elevated: #141E30;
+  --bg-overlay: #192338;
+  --bg-hover: #1E2A40;
+  --bg-active: #243148;
+
+  /* Borders */
+  --border-ghost: rgba(255,255,255,0.03);
+  --border-subtle: rgba(255,255,255,0.06);
+  --border-default: rgba(255,255,255,0.09);
+  --border-emphasis: rgba(59,130,246,0.25);
+  --border-active: rgba(59,130,246,0.5);
+  --border-glow: rgba(59,130,246,0.8);
+
+  /* Primary Accent — Electric Blue */
+  --accent-blue-dim: rgba(59,130,246,0.08);
+  --accent-blue-subtle: rgba(59,130,246,0.15);
+  --accent-blue-muted: #1D4ED8;
+  --accent-blue: #3B82F6;
+  --accent-blue-bright: #60A5FA;
+  --accent-blue-vivid: #93C5FD;
+  --accent-blue-glow: 0 0 20px rgba(59,130,246,0.4);
+
+  /* Secondary Accent — Plasma Teal */
+  --accent-teal-dim: rgba(20,184,166,0.08);
+  --accent-teal-subtle: rgba(20,184,166,0.15);
+  --accent-teal: #14B8A6;
+  --accent-teal-bright: #2DD4BF;
+  --accent-teal-vivid: #5EEAD4;
+  --accent-teal-glow: 0 0 20px rgba(20,184,166,0.35);
+
+  /* Status — Semantic Colors */
+  --status-safe: #10B981;
+  --status-safe-bg: rgba(16,185,129,0.08);
+  --status-safe-border: rgba(16,185,129,0.2);
+  --status-caution: #F59E0B;
+  --status-caution-bg: rgba(245,158,11,0.08);
+  --status-caution-border: rgba(245,158,11,0.2);
+  --status-warning: #F97316;
+  --status-warning-bg: rgba(249,115,22,0.08);
+  --status-warning-border: rgba(249,115,22,0.2);
+  --status-danger: #EF4444;
+  --status-danger-bg: rgba(239,68,68,0.08);
+  --status-danger-border: rgba(239,68,68,0.2);
+
+  /* Text */
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-tertiary: #64748B;
+  --text-muted: #475569;
+  --text-disabled: #334155;
+  --text-inverse: #080C14;
+  --text-accent: #60A5FA;
+  --text-teal: #2DD4BF;
+
+  /* Special */
+  --ai-gradient: linear-gradient(135deg, rgba(59,130,246,0.12), rgba(20,184,166,0.08));
+  --ai-border: rgba(59,130,246,0.2);
+  --surface-gradient: linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-card) 100%);
+
+  /* Typography */
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Type Scale */
+  --text-hero: clamp(40px, 6vw, 72px);
+  --text-display: clamp(28px, 4vw, 48px);
+  --text-h1: 28px;
+  --text-h2: 22px;
+  --text-h3: 18px;
+  --text-h4: 15px;
+  --text-body-lg: 15px;
+  --text-body: 14px;
+  --text-body-sm: 13px;
+  --text-caption: 12px;
+  --text-micro: 11px;
+  --text-nano: 10px;
+
+  /* Weights */
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* Line heights */
+  --leading-tight: 1.15;
+  --leading-snug: 1.3;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.65;
+
+  /* Tracking */
+  --tracking-tight: -0.03em;
+  --tracking-snug: -0.02em;
+  --tracking-normal: -0.01em;
+  --tracking-wide: 0.04em;
+  --tracking-widest: 0.1em;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  /* Layout */
+  --sidebar-width: 248px;
+  --topbar-height: 58px;
+  --chatbot-width: 384px;
+  --content-max: 1440px;
+  --card-radius: 16px;
+  --card-radius-lg: 20px;
+  --card-radius-sm: 10px;
+  --chip-radius: 24px;
+}
+
+/* ============================================================
+   HIGH CONTRAST MODE — swaps tokens on .high-contrast on <html>
+   ============================================================ */
+.high-contrast {
+  --bg-void: #000000;
+  --bg-base: #000000;
+  --bg-surface: #0A0A0A;
+  --bg-card: #111111;
+  --bg-elevated: #1A1A1A;
+  --bg-overlay: #222222;
+  --bg-hover: #2A2A2A;
+  --bg-active: #333333;
+  --border-ghost: rgba(255,255,255,0.1);
+  --border-subtle: rgba(255,255,255,0.2);
+  --border-default: rgba(255,255,255,0.3);
+  --border-emphasis: rgba(255,255,0,0.6);
+  --border-active: #FFFF00;
+  --border-glow: #FFFF00;
+  --accent-blue-dim: rgba(255,255,0,0.1);
+  --accent-blue-subtle: rgba(255,255,0,0.2);
+  --accent-blue-muted: #CCCC00;
+  --accent-blue: #FFFF00;
+  --accent-blue-bright: #FFFF00;
+  --accent-blue-vivid: #FFFF88;
+  --accent-teal-dim: rgba(0,255,255,0.1);
+  --accent-teal-subtle: rgba(0,255,255,0.2);
+  --accent-teal: #00FFFF;
+  --accent-teal-bright: #00FFFF;
+  --accent-teal-vivid: #88FFFF;
+  --text-primary: #FFFFFF;
+  --text-secondary: #E0E0E0;
+  --text-tertiary: #BDBDBD;
+  --text-muted: #9E9E9E;
+  --text-disabled: #757575;
+  --text-accent: #FFFF00;
+  --text-teal: #00FFFF;
+  --status-safe: #00FF88;
+  --status-safe-bg: rgba(0,255,136,0.1);
+  --status-safe-border: rgba(0,255,136,0.4);
+  --status-caution: #FFD700;
+  --status-caution-bg: rgba(255,215,0,0.1);
+  --status-caution-border: rgba(255,215,0,0.4);
+  --status-warning: #FF8C00;
+  --status-warning-bg: rgba(255,140,0,0.1);
+  --status-warning-border: rgba(255,140,0,0.4);
+  --status-danger: #FF4444;
+  --status-danger-bg: rgba(255,68,68,0.1);
+  --status-danger-border: rgba(255,68,68,0.4);
+}
+
+/* ============================================================
+   BASE STYLES
+   ============================================================ */
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html {
+    font-size: 14px;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-weight: var(--weight-regular);
+    line-height: var(--leading-normal);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    margin: 0;
+  }
+
+  /* Override system fonts on all form elements */
+  input, textarea, select, button {
+    font-family: var(--font-body);
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--accent-blue); }
+  * { scrollbar-width: thin; scrollbar-color: var(--border-default) transparent; }
+}
+
+/* ============================================================
+   LARGE TEXT MODE
+   ============================================================ */
+.large-text { font-size: 112.5% !important; }
+
+/* ============================================================
+   UTILITY CLASSES
+   ============================================================ */
+@layer utilities {
+  /* Hide scrollbars visually while maintaining scroll */
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+
+  /* Font utilities */
+  .font-display { font-family: var(--font-display); }
+  .font-mono { font-family: var(--font-mono); }
+
+  /* Focus ring utility - focus-visible only */
+  .focus-ring:focus-visible {
+    outline: 2.5px solid var(--accent-blue-bright);
+    outline-offset: 3px;
+    border-radius: inherit;
+  }
+
+  /* SR only */
+  .sr-only {
+    position: absolute; width: 1px; height: 1px;
+    padding: 0; margin: -1px; overflow: hidden;
+    clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+  }
+
+  /* Glass panel */
+  .glass-panel {
+    background: rgba(20,30,48,0.75);
+    backdrop-filter: blur(32px) saturate(200%);
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
+  }
+
+  /* Card accent bar — top shimmer */
+  .card-shimmer-top { position: relative; overflow: hidden; }
+  .card-shimmer-top::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border-subtle) 50%, transparent);
+    pointer-events: none;
+  }
+  .card-accent::before {
+    background: linear-gradient(90deg, transparent, rgba(96,165,250,0.4) 50%, transparent);
+  }
+
+  /* Accent Card left edge bar */
+  .card-accent-bar { position: relative; }
+  .card-accent-bar::after {
+    content: '';
+    position: absolute;
+    width: 3px; left: 0; top: 16px; bottom: 16px;
+    background: linear-gradient(180deg, var(--accent-blue), var(--accent-teal));
+    border-radius: 0 2px 2px 0;
+  }
+}
+
+/* ============================================================
+   SKELETON LOADER — Premium Shimmer
+   ============================================================ */
+@keyframes skeleton-sweep {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-premium {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    105deg,
+    var(--bg-card) 40%,
+    var(--bg-elevated) 50%,
+    rgba(59,130,246,0.04) 55%,
+    var(--bg-elevated) 60%,
+    var(--bg-card) 70%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-sweep 1.8s ease infinite;
+  border-radius: 6px;
+}
+.skeleton-premium::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(59,130,246,0.3), transparent);
+  border-radius: inherit;
+}
+
+/* Legacy alias */
+.skeleton { @apply skeleton-premium; border-radius: 8px; }
+.shimmer-bg { @apply skeleton-premium; border-radius: 8px; }
+
+/* ============================================================
+   CONGESTION METER ANIMATIONS
+   ============================================================ */
+@keyframes pulse-congestion {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+@keyframes congestion-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.congestion-bar-fill-critical {
+  animation: pulse-congestion 1.5s ease-in-out infinite;
+}
+.congestion-bar-fill-high {
+  background: linear-gradient(90deg, #F97316 0%, #FB923C 50%, #F97316 100%);
+  background-size: 200% 100%;
+  animation: congestion-shimmer 2s ease-in-out infinite;
+}
+
+/* ============================================================
+   SOS EMERGENCY BUTTON
+   ============================================================ */
+@keyframes sos-attention {
+  0%   { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
+  70%  { box-shadow: 0 0 0 14px rgba(239,68,68,0); }
+  100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+}
+.btn-emergency { animation: sos-attention 2.5s ease-out infinite; }
+
+/* ============================================================
+   DANGER BUTTON PULSE
+   ============================================================ */
+@keyframes danger-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+  50%       { box-shadow: 0 0 0 4px rgba(239,68,68,0.15); }
+}
+.btn-danger-pulse { animation: danger-pulse 2s ease-in-out infinite; }
+
+/* ============================================================
+   HERO ORB FLOATERS
+   ============================================================ */
+@keyframes float-orb {
+  0%, 100% { transform: translateY(0) scale(1); opacity: 0.5; }
+  50%       { transform: translateY(-30px) scale(1.08); opacity: 0.8; }
+}
+.hero-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  pointer-events: none;
+}
+.hero-orb-1 {
+  width: 500px; height: 500px;
+  top: -120px; left: -100px;
+  background: radial-gradient(circle, rgba(59,130,246,0.22) 0%, transparent 70%);
+  animation: float-orb 7s ease-in-out infinite;
+}
+.hero-orb-2 {
+  width: 350px; height: 350px;
+  top: 10%; right: -80px;
+  background: radial-gradient(circle, rgba(20,184,166,0.18) 0%, transparent 70%);
+  animation: float-orb 9s ease-in-out infinite 1.5s;
+}
+.hero-orb-3 {
+  width: 280px; height: 280px;
+  bottom: 15%; left: 30%;
+  background: radial-gradient(circle, rgba(37,99,235,0.15) 0%, transparent 70%);
+  animation: float-orb 11s ease-in-out infinite 3s;
+}
+
+/* ============================================================
+   ROUTE PATH DRAW ANIMATION
+   ============================================================ */
+.path-draw {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: draw 1000ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+@keyframes draw {
+  to { stroke-dashoffset: 0; }
+}
+
+/* ============================================================
+   LANDING PAGE — Grid background
+   ============================================================ */
+.hero-grid-bg {
+  background-image:
+    linear-gradient(var(--border-ghost) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border-ghost) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+/* ============================================================
+   ALERT CHIP ANIMATIONS
+   ============================================================ */
+@keyframes alert-enter {
+  from { opacity: 0; transform: translateX(-24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes alert-exit {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.94); }
+}
+@keyframes critical-pulse-border {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+  50%       { box-shadow: 0 0 0 3px rgba(239,68,68,0.35); }
+}
+.alert-chip-enter { animation: alert-enter 0.28s ease-out forwards; }
+.alert-chip-exit  { animation: alert-exit 0.18s ease-in forwards; }
+.alert-critical   {
+  animation: alert-enter 0.28s ease-out forwards, critical-pulse-border 2.5s ease-in-out infinite 0.3s;
+}
+
+/* ============================================================
+   ZONE ANIMATIONS
+   ============================================================ */
+@keyframes zone-breathe-critical {
+  0%, 100% { opacity: 0.7; box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+  50%       { opacity: 1;   box-shadow: 0 0 20px rgba(239,68,68,0.25); }
+}
+@keyframes zone-breathe-high {
+  0%, 100% { opacity: 0.85; }
+  50%       { opacity: 1;   box-shadow: 0 0 12px rgba(249,115,22,0.2); }
+}
+@keyframes gate-ripple {
+  0%   { r: 4;  opacity: 0.9; }
+  100% { r: 18; opacity: 0;   }
+}
+.zone-breathe-critical { animation: zone-breathe-critical 2s ease-in-out infinite; }
+.zone-high             { animation: zone-breathe-high 2.5s ease-in-out infinite; }
+.gate-ripple-circle    { animation: gate-ripple 1s ease-out forwards; }
+
+/* ============================================================
+   NAV ACTIVE STATE
+   ============================================================ */
+.nav-item-active { position: relative; }
+.nav-item-active::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 20%; bottom: 20%;
+  width: 3px;
+  background: linear-gradient(to bottom, transparent, var(--accent-blue), transparent);
+  border-radius: 0 2px 2px 0;
+}
+
+/* ============================================================
+   3D TILT
+   ============================================================ */
+.tilt-wrapper  { transform-style: preserve-3d; will-change: transform; }
+.tilt-shine    {
+  position: absolute; inset: 0; border-radius: inherit;
+  pointer-events: none; z-index: 1;
+  transition: background 0.1s ease;
+}
+
+/* ============================================================
+   HOLO CARD — radial mouse-follow highlight
+   ============================================================ */
+.holo-card { --mouse-x: 50%; --mouse-y: 50%; position: relative; }
+.holo-card::after {
+  content: '';
+  position: absolute; inset: 0; border-radius: inherit;
+  background: radial-gradient(
+    circle at var(--mouse-x) var(--mouse-y),
+    rgba(96,165,250,0.15) 0%,
+    rgba(20,184,166,0.08) 35%,
+    transparent 65%
+  );
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none; z-index: 2;
+}
+.holo-card:hover::after { opacity: 1; }
+
+/* ============================================================
+   PAGE PROGRESS BAR
+   ============================================================ */
+@keyframes page-progress {
+  from { transform: scaleX(0); }
+  60%  { transform: scaleX(0.85); }
+  to   { transform: scaleX(1); }
+}
+.page-progress-bar { transform-origin: left center; }
+
+/* ============================================================
+   BUTTON PRIMARY STATES
+   ============================================================ */
+.btn-primary { transform-style: preserve-3d; position: relative; overflow: hidden; }
+.btn-primary::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 60%);
+  border-radius: inherit; pointer-events: none;
+  opacity: 0; transition: opacity 0.2s ease;
+}
+.btn-primary:hover { transform: translateY(-1px); }
+.btn-primary:hover::before { opacity: 1; }
+.btn-primary:active { transform: scale(0.98) translateY(0); }
+
+/* ============================================================
+   GLASSMORPHISM LAYERS
+   ============================================================ */
+.glass-layer-1 {
+  backdrop-filter: blur(24px) saturate(200%);
+  background: rgba(20,30,48,0.78);
+  border: 1px solid rgba(96,165,250,0.12);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 8px 32px rgba(0,0,0,0.4);
+}
+.glass-layer-2 {
+  backdrop-filter: blur(16px) saturate(160%);
+  background: rgba(16,24,39,0.82);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.35);
+}
+/* App bar glass */
+.glass-layer-3 {
+  backdrop-filter: blur(20px) saturate(180%);
+  background: rgba(8,12,20,0.88);
+  border-bottom: 1px solid var(--border-subtle);
+  box-shadow: 0 1px 0 rgba(96,165,250,0.06);
+}
+
+/* Glass rim top-edge shimmer */
+.glass-rim { position: relative; }
+.glass-rim::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(96,165,250,0.25) 50%, transparent 100%);
+  pointer-events: none; border-radius: inherit;
+}
+
+/* ============================================================
+   CHAT DOCK RING
+   ============================================================ */
+@keyframes ring-pulse {
+  0%   { box-shadow: 0 4px 24px rgba(59,130,246,0.4), 0 0 0 0 rgba(59,130,246,0.4); }
+  70%  { box-shadow: 0 4px 24px rgba(59,130,246,0.4), 0 0 0 10px rgba(59,130,246,0); }
+  100% { box-shadow: 0 4px 24px rgba(59,130,246,0.4), 0 0 0 0 rgba(59,130,246,0); }
+}
+.chat-dock-ring { animation: ring-pulse 2s infinite; }
+
+/* ============================================================
+   TYPING INDICATOR
+   ============================================================ */
+@keyframes typing-dot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30%            { transform: translateY(-6px); opacity: 1; }
+}
+.typing-dot:nth-child(1) { animation: typing-dot 1.2s ease-in-out infinite; }
+.typing-dot:nth-child(2) { animation: typing-dot 1.2s ease-in-out infinite 0.2s; }
+.typing-dot:nth-child(3) { animation: typing-dot 1.2s ease-in-out infinite 0.4s; }
+
+/* ============================================================
+   PHASE TIMELINE CONNECTION LINE FILL
+   ============================================================ */
+@keyframes line-fill {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+.phase-line-fill { animation: line-fill 600ms ease-out forwards; }
+
+/* ============================================================
+   LIVE PULSE DOT
+   ============================================================ */
+@keyframes pulse-live {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%       { transform: scale(1.5); opacity: 0.6; }
+}
+.animate-pulse-live { animation: pulse-live 1.5s ease-in-out infinite; }
+
+/* ============================================================
+   AI GLOW
+   ============================================================ */
+.ai-glow { box-shadow: 0 0 20px 4px rgba(59,130,246,0.25); }
+
+/* ============================================================
+   REDUCED MOTION SAFETY NET
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .hero-orb { display: none !important; }
+  .tilt-wrapper { transform: none !important; }
+  .holo-card::after { display: none !important; }
+  .skeleton-premium { animation: none !important; background: var(--bg-elevated); }
+  .btn-primary:hover { transform: none !important; }
+  .btn-emergency, .btn-danger-pulse, .chat-dock-ring { animation: none !important; }
+  .zone-breathe-critical, .zone-high { animation: none !important; }
+  .gate-ripple-circle { animation: none !important; }
+  .page-progress-bar { animation: none !important; transform: scaleX(1) !important; }
+  .animate-pulse-live { animation: none !important; }
+  .congestion-bar-fill-critical, .congestion-bar-fill-high { animation: none !important; }
+}

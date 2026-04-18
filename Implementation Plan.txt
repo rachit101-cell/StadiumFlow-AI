@@ -1,0 +1,568 @@
+StadiumFlow AI — Implementation Plan
+
+1. Product Vision
+StadiumFlow AI is a dual-role, AI-powered matchday coordination platform. It is not a map app. It is not a ticketing app. It is an intelligent venue companion that makes the physical event experience smarter — from the moment an attendee leaves home to the moment they exit the parking zone after the match.
+The core thesis is this: large sporting venues are operationally chaotic because no one has real-time visibility and the tools to act on it. Attendees make uninformed movement decisions. Organizers react to problems instead of preventing them. StadiumFlow AI solves both sides simultaneously using simulated live venue intelligence, context-aware AI recommendations, and a deeply personalized experience layer.
+The platform must feel like it actually exists and actually works. The judge's first 60 seconds of experience should produce the feeling that this is something real teams would use today.
+
+2. Hackathon Strategy
+The primary risk in a hackathon is building too much surface area with no depth. The secondary risk is building something technically correct but visually unimpressive. Both must be avoided.
+The winning approach is to build fewer pages with significantly higher depth and intelligence per page, then back it with a confident demo narrative that judges can follow.
+Prioritize in this order:
+First, build the venue simulation engine because everything else depends on it. If the data layer works, every page can be impressive without extra effort.
+Second, build the attendee dashboard and navigation page because they are the highest-impact, most visually demonstrable pages. Judges will spend the most time here.
+Third, build the chatbot because it is the clearest AI feature judges will interact with directly. A contextually accurate chatbot response is more memorable than any static visual.
+Fourth, build the organizer dashboard because it shows system-level thinking and completeness, which is what separates good entries from excellent ones.
+Finally, build the landing page, onboarding flow, and exit guidance as polish layers.
+The single most important decision is to use Google Gemini API through the free tier as the intelligence layer. This directly satisfies the "effective use of Google Services" judging criterion, which is a non-negotiable win condition.
+Do not spread across ten Google services to show quantity. Go deep on two: Gemini API for AI intelligence, and Google Fonts plus Material Symbols for polished UI. That is enough to score full marks on Google Services while staying free.
+
+3. Functional Scope
+The platform has three interconnected layers: a shared simulation engine, an attendee-facing experience, and an organizer-facing control center.
+The simulation engine is the backbone. It generates live-like venue state — gate congestion levels, corridor occupancy, food stall queue lengths, washroom wait times, event phase progression, and bottleneck zones. Everything displayed on both sides of the platform pulls from this shared state.
+The attendee experience spans onboarding, a smart dashboard, a navigation interface with a custom SVG stadium map, a facilities assistant, and an exit guidance view. At all times, the AI chatbot is accessible as a floating dock and aware of the current venue state.
+The organizer experience spans a live zone control center, a congestion and queue monitoring panel, an AI recommendation feed, and an advisory management system. The organizer chatbot operates in a different mode, producing operational outputs rather than attendee guidance.
+
+4. Must-Have vs Should-Have vs Nice-to-Have
+Must-have — these are the features the demo cannot succeed without:
+The simulation engine with at least four event phases: pre-match, halftime, live match, and post-match. Each phase must visibly change crowd data, which must visibly change recommendations across both sides of the platform.
+Attendee dashboard with best gate card, route summary card, top facility suggestions, and live alert strip. This is the first page judges will see after onboarding and it must be flawless.
+Custom SVG stadium map with color-coded zone congestion, a visible route path, and the ability to show alternate routes. This is the highest-impact visual in the product.
+AI chatbot using Gemini API, with venue-state context injected into every prompt, structured response format showing recommendation, reason, ETA, and alternate option, and at least six working quick-action prompt chips.
+Organizer dashboard with zone cards, a bottleneck alert feed, an AI recommendation panel, and a working simulate-spike button. The simulate button is critical for demos — it lets judges trigger a visible event and watch the system respond.
+Accessibility mode toggle that changes routing logic, enables larger text, and switches to a high-contrast visual state. Judges will specifically look for this.
+Role-based access separation between attendee and organizer views, even if implemented as a simple role selection at the entry point.
+Should-have — valuable but not demo-blocking:
+Onboarding flow with seat input, accessibility preference, and family/group mode. This sets up personalization so the dashboard output feels intelligent rather than generic.
+Exit guidance page with section-based phased exit logic and alternate exit recommendation.
+Organizer advisory composer that lets the organizer type or approve a message and have it appear as a banner in the attendee view.
+Halftime rush simulation scenario that is triggerable independently from the organizer panel.
+Language preference selector in onboarding, even if the actual UI only supports English and one other language. The presence of the feature signals multilingual thinking to judges.
+Nice-to-have — include only if development velocity allows:
+Offline venue map fallback state. Emergency SOS workflow with a visual confirmation state. Parking-to-gate journey in the pre-arrival section. Battery-friendly mode toggle. Saved seat and recent destinations. Transit direction suggestion for post-match.
+These are table-setters, not winners. Cut them ruthlessly if time is tight.
+
+5. Phased Implementation Plan
+Phase one is the foundation. Build the venue state simulation engine first. Design a data model for the stadium — define gates, corridors, seat sections, food stalls, washrooms, exits, and medical points as a static config object. Attach crowd levels, queue times, and congestion scores as mutable state to each entity. Write pure functions that evolve this state over time when an event phase is active, and that respond to manual spike triggers. Get this working and testable in isolation before touching any page UI.
+Parallel to this, build the custom SVG stadium map. Design a fictional but realistic oval stadium with visible gates at North, South, East, and West, section labels A through H, corridor rings, food stall clusters near gates, washroom blocks, exits, and medical points. The SVG must support color fills tied to crowd state, an animated path overlay for routing, and zone click or hover interaction for detail display. This is the visual centrepiece. Treat it like a product design asset, not a coding task.
+Phase two is the core attendee experience. Build onboarding as a multi-step form collecting seat section, accessibility mode, family/group flag, and food preference. Store this in session or in-memory state. Then build the attendee dashboard using card components that each read from the simulation engine and from the user profile. The gate card, route card, facility cards, and alert strip must all update reactively when simulation state changes. Wire the map into a navigation tab within the dashboard, showing the user's seat location, recommended route, and the zone heatmap.
+Phase three is the chatbot. Connect Gemini API using the free tier. Design a system prompt template that injects: current event phase, venue state snapshot for the user's relevant zone, user seat section, accessibility flag, and family/group flag. Structure every chatbot response using a response format instruction in the system prompt: recommendation in bold, then reason, then ETA or time impact, then alternate option. Build the chatbot panel as a floating dock on the attendee side. Wire in the six quick-action chips as pre-composed prompts. Test with each event phase and verify that the chatbot's recommendation changes appropriately when the simulation state changes.
+Phase four is the organizer side. Build the control center layout with zone health cards arranged in a grid, each showing crowd level, a severity color, and trend direction. Add the AI recommendation panel that reads from Gemini using an organizer-mode system prompt, which produces operational language: urgency level, zone name, recommended staff action, and suggested attendee advisory text. Add the simulate-spike button that drives a visible cascade across zone cards, the alert feed, and the recommendation panel in real time. Wire the advisory composer so the organizer can approve or edit a suggested advisory, and trigger its appearance as a banner in the attendee view.
+Phase five is polish, accessibility, and demo preparation. Apply the full visual system: dark theme, accent colors, glassmorphism card borders, micro-animations for state transitions, skeleton loaders during simulated fetch delays, toast notifications for alerts, and empty states for initial load. Implement accessibility mode fully — stair-free routing logic, high-contrast CSS class swap, larger text scaling, and ARIA labels throughout. Build the landing page. Record or prepare the demo narrative. Confirm every simulation scenario works cleanly end-to-end.
+
+6. Chatbot Planning
+The chatbot is the clearest AI demonstration point in the product. It must be built to feel context-intelligent, not encyclopedic.
+The system prompt construction strategy is the most critical engineering decision in the chatbot. Every call to Gemini must include a serialized snapshot of the relevant venue state at call time. This snapshot should include: current event phase label, congestion level of the user's gate, congestion level of the route corridors, queue time for the nearest food stalls and washrooms, and any active alerts. The user profile context must also be included: seat section, accessibility flag, family flag. This injection makes the chatbot's responses feel live without any real-time data infrastructure.
+The response format must be enforced by the system prompt. Instruct Gemini to always structure its output with four components: the recommended action as a clear directive, the reason as one short sentence explaining why this is optimal right now, the time impact as an ETA or minutes saved estimate, and the alternate option as a one-sentence fallback. This structured output can then be parsed and rendered in a styled card in the chat panel, not as raw prose, which makes it visually impressive and easy to scan.
+The six quick-action chips — Best gate for me, Route to my seat, Nearest washroom, Best food option now, Should I leave now, Best exit after match — must each map to a pre-composed prompt string that includes the full context injection. When a judge taps one, the response should arrive in under three seconds and look distinctly smarter than a generic chatbot.
+For the organizer mode, the system prompt shifts register entirely. The injected context is now venue-wide: all zone congestion levels, all queue states, staff distribution, active alerts. The response format shifts to: urgency level tag, zone name, recommended operational action, suggested attendee advisory text. The organizer chatbot should feel like a shift supervisor assistant, not a customer-facing tool.
+One critical tradeoff to plan for: Gemini API free tier has rate limits. During demo, if multiple judges interact simultaneously, rate limits may be hit. Mitigate this by building a response cache keyed on event phase plus user profile hash. If a near-identical request was made in the last 30 seconds, return the cached response instantly. This also makes demo performance feel fast and responsive.
+
+7. Real-Time Simulation Planning
+The simulation engine is purely client-side JavaScript state that evolves on a timer and responds to manual triggers. There are no real-time databases, no websocket servers, no hardware sensors. Everything is computed deterministically from phase configuration and randomised noise.
+Define four event phases as named state configurations: pre-match, live-match, halftime, and post-match. Each configuration specifies the baseline congestion distribution across zones. For example, pre-match sets gates at medium-high, corridors at low-medium, food stalls at low, exits at empty. Post-match sets exits at critical, gates at low, food stalls at medium-low.
+Layer on top of this a noise function that adds small random variation to each entity's congestion score every 8 to 15 seconds. This creates the visual impression of a live, breathing system without any backend dependency.
+Layer on top of that a spike event system. A spike event picks a specific zone, raises its congestion to a critical level immediately, and dampens back to elevated over 90 seconds. Spike events can be triggered automatically at phase transitions, or manually by the organizer via the simulate-spike control.
+When state changes cross threshold boundaries — for example, a gate crossing from medium into high congestion — the system must emit events that the recommendation engine listens to. These events cause: the gate suggestion card to update, the route overlay on the map to recalculate using the updated weights, alert banners to appear for affected users, new organizer recommendations to generate, and the chatbot's injected context to update so the next response reflects the change.
+The halftime rush is the most important scenario for demo. When triggered, it simultaneously spikes food stall queues, spikes washroom queues, spikes corridor congestion in sections adjacent to concession areas, and emits three simultaneous alerts to the attendee view. The organizer panel should immediately surface two AI-generated recommendations: open additional food counter and redirect North Stand through East Corridor. This cascade happening visually in real time in front of judges is the most powerful demonstration moment in the product.
+
+8. Personalization Planning
+Personalization is what differentiates this from a generic stadium map. It must be visible and demonstrable, not just described in the product narrative.
+The user profile from onboarding drives three categories of personalization.
+Routing personalization: if the user has wheelchair mode enabled, all path-finding logic must filter out routes that include stair nodes. The stadium graph must encode whether each corridor segment includes stairs. Accessible routes are longer but guaranteed stair-free. If family/group mode is enabled, the route preference weights open corridors and elevator paths more heavily, and avoids tight high-traffic zones.
+Timing personalization: the event phase combined with the user's seat location determines a different "best time to move" recommendation. A user in Section A near Gate North gets a halftime movement suggestion 2 minutes before a user in Section F near Gate South, because their corridor distances differ. This is simulated by section-based timing offsets in the phase config.
+Content personalization: the facilities panel should not show the same recommendations to all users. A user in Section C gets food stalls and washrooms ranked by weighted score of distance from Section C plus wait time plus congestion of the connecting corridor. A user in Section G gets a different ranking for the same facility list. The ranker is a simple weighted score function — distance weight, queue time weight, corridor congestion weight — applied to each user's zone offset.
+The personalization must be visible to the judge. The easiest way to achieve this is to add a small contextual label to every recommendation that explains why this recommendation is personalised: "Recommended because you're in Section C and Gate East queue is low" or "Accessible route — stair-free path selected based on your preference." This one-line explanation is the most effective way to signal intelligence without complexity.
+
+9. User-Flow Planning
+There are two distinct user flows and they must each be clean and unambiguous.
+The attendee flow begins at the landing page. The CTA takes them to role selection — attendee or organizer. Choosing attendee takes them to onboarding: three steps collecting seat section, accessibility preferences, and optional food preference. Guest mode skips to a default profile. After onboarding, the attendee lands on their dashboard.
+From the dashboard, the attendee has four primary actions: tap the gate card to see detailed gate status and alternate gate suggestion; tap the route card or the map tab to open the stadium navigation view with their full route visualised; tap any facility card to open the facilities assistant with full ranked list; or open the chatbot dock to ask a question or use a quick-action chip. The alert strip is persistent at the top and dismissable per alert.
+During the match, the dashboard should adapt based on event phase without requiring user action. When the simulation engine enters halftime, the dashboard surfaces the halftime-specific facilities panel automatically. When post-match begins, exit guidance replaces the gate card as the primary recommendation.
+The organizer flow begins at role selection. Choosing organizer takes them directly to the control center dashboard — no onboarding needed. The dashboard is immediately populated with zone health cards, the alert feed, and the AI recommendation panel. The organizer's primary actions are: review and approve or dismiss AI recommendations; use the advisory composer to send a message to all attendee views; trigger a simulation scenario using the scenario control panel; or query the organizer chatbot. The simulate-spike button must be prominent and clearly labelled for demo purposes.
+Between the two flows, there must be a clean role-switch mechanism — a top-right toggle or exit link that returns to the role selection screen. This allows judges to switch between views quickly during demo.
+
+10. Google Services Planning Under Zero-Cost Limits
+Google Gemini API is the primary and non-negotiable Google service. Use the Gemini 1.5 Flash model, which is available on the free tier with sufficient quota for demo purposes. Flash is fast enough for sub-3-second chatbot responses in the demo environment, which is the target.
+All API calls must go through the client side using the Gemini JavaScript SDK, with the API key stored in an environment variable in the deployment config — not hardcoded in source. For a hackathon demo, this is acceptable since there is no user-generated backend.
+Google Fonts must be used explicitly and credited. Choose two typefaces: a geometric sans-serif like Inter or Geist for UI text, and optionally a display face for the landing page headline. Load them via the Google Fonts CDN.
+Google Material Symbols must be used for icons throughout the interface — status indicators, navigation icons, facility icons, alert icons. Use the outlined style for consistency and pair every icon with a visible text label. This satisfies both the accessibility requirement and demonstrates intentional use of Google's design system.
+If time permits, Firebase Authentication on the free Spark plan can be used for role-based access. It provides persistent session state across roles without building any backend. Use anonymous sign-in for guest mode and email/password for organizer access. This is optional but adds a security dimension that scores well in judging.
+Avoid Firebase Realtime Database, Firebase Hosting beyond the free tier, and any Google Maps or Places API. These either cost money beyond small limits or are outside the zero-cost constraint.
+One important framing note: when presenting to judges, describe the Gemini API integration explicitly. Name it. Show it. Point to the chatbot response and say "this is Gemini 1.5 Flash responding with injected live venue context." Judges scoring on Google Services need to see it clearly, not infer it.
+
+11. Security, Efficiency, Testing, and Accessibility Planning
+Security: the primary surface is the Gemini API key. Never expose it in the client-side bundle in a production-equivalent deployment. For the hackathon, use Vite's environment variable system to inject it at build time and keep the repository's .env file out of version control. If using Firebase Auth for organizer role separation, ensure the organizer chatbot mode is only accessible to authenticated organizer sessions. Do not allow attendee sessions to call organizer-mode Gemini prompts. This role-based prompt restriction is the most important security decision in the product.
+Sanitise all text that flows from chatbot responses into the DOM. Even though Gemini is trusted, use a sanitiser before rendering markdown output to prevent any unexpected injection in a demo environment where the system prompt could be manipulated.
+Efficiency: the simulation engine must run on a requestAnimationFrame or setInterval loop only for the noise layer. Phase transitions and spike events should be event-driven, not polled. This prevents unnecessary computation during static periods. The Gemini API must not be called on a timer or on every simulation state change — only on explicit user interaction. Batch the context snapshot at call time rather than maintaining a continuously synced state object.
+The SVG stadium map is the most performance-sensitive rendering element. Keep the SVG node count low — represent sections as filled polygons, not detailed architectural drawings. Avoid SVG filters and drop shadows on animated elements. Use CSS transform for path overlay animations, not SVG attribute animation.
+Implement skeleton loader states for every card on first render and after simulation phase transitions. This gives the impression of live data fetching without actual network calls, and it avoids jarring instant state changes.
+Testing: write pure function unit tests for the simulation engine's phase transition logic and the recommendation ranker. These are the two most logic-dense parts of the system and the most likely to produce wrong outputs under edge cases. Test the accessibility mode routing filter to confirm stair segments are never included in accessible paths. For the chatbot, test that the context injection function serialises correctly under each event phase. Manual end-to-end testing should cover the full attendee flow with accessibility mode on, and the full organizer flow through a halftime spike scenario.
+Accessibility: WCAG 2.1 AA is the target. All interactive elements must be keyboard navigable with visible focus rings. All status indicators must use both color and a text or icon label — never color alone. The heatmap must include a legend with text labels. The chatbot response cards must be readable by a screen reader in a logical order: recommendation first, then reason, then ETA, then alternate. All form inputs in onboarding must have associated visible labels, not just placeholders. High-contrast mode must achieve a minimum 7:1 contrast ratio on all text. Font size scaling must be tested at 150 percent and 200 percent zoom without layout breakage. The ARIA live region pattern must be used for alert banners so screen readers announce them without requiring focus.
+
+12. Demo Strategy
+The demo must be scripted to a 3-minute walkthrough. Every second of unplanned navigation costs credibility.
+Open on the landing page. Spend 15 seconds here. Point to the headline, the problem statement, and the feature grid. Do not linger.
+Select attendee role. Complete onboarding in 20 seconds by selecting a seat section, enabling accessibility mode, and choosing family/group mode. Emphasise that these preferences drive all subsequent recommendations.
+Land on the dashboard. Point to the gate card and explain that it is recommending Gate C because Gate A has 78 percent congestion right now. Point to the route card. Open the chatbot dock and type or tap "Route to my seat." Show the structured response: recommendation, reason, ETA, alternate. Name Gemini. This is the peak AI demonstration moment.
+Open the map view. Show the route overlay, the heatmap coloring, and point out that accessible paths avoid the staircase corridors. Trigger the halftime simulation from the organizer panel in a split view or by navigating to it. Come back to the attendee view and show that the dashboard has changed — food stall cards are now prominent, the alert strip has a new halftime advisory, and the route card suggests going now before the rush peaks.
+Switch to organizer role. Show the zone cards with the spike visible. Show the AI recommendation panel with the two actionable suggestions. Tap approve on one. Switch briefly back to attendee and show that the advisory banner has appeared in the attendee view. This end-to-end loop — organizer triggers action, attendee sees result — is the single most powerful moment in the demo.
+Exit guidance: advance the simulation to post-match. Show the exit recommendation change in the attendee view. Demonstrate the alternate exit suggestion when the primary exit is congested.
+Close with the accessibility mode in high-contrast view. Point to the stair-free route. Name the WCAG target. This is a differentiator that most teams will miss.
+Total: approximately 3 minutes. Practise it until the navigation is instinctive. A confident, fluent demo is worth more than an extra feature.
+
+13. Final Execution Checklist
+Before the build begins, confirm that the Gemini API key is obtained and working on the free tier. Confirm that the SVG stadium map design is decided — oval or rectangular, gate positions, section labels. Confirm that the tech stack is chosen and locked. Recommended: React with Vite, Tailwind CSS, and the Gemini JavaScript SDK. These are free, fast to develop in, and produce the visual quality needed.
+During the build, enforce this order ruthlessly: simulation engine first, then map, then attendee dashboard, then chatbot, then organizer dashboard, then landing page and onboarding. Do not start the landing page until all four core pages are working. The landing page is polish, not foundation.
+Completion checklist before demo day:
+The simulation engine advances through all four phases and emits correct events. The SVG map shows zone colors, a route overlay, and updates when congestion changes. The attendee dashboard shows personalised content for at least two different seat sections with visibly different recommendations. The chatbot returns a structured response using Gemini with venue context for all six quick-action chips. The halftime simulation spike causes visible cascade across attendee dashboard, alert strip, chatbot context, and organizer panel simultaneously. The organizer advisory triggers a visible banner in the attendee view. Accessibility mode changes routing logic and visual theme. High-contrast mode passes visual inspection. All interactive elements are keyboard reachable. Skeleton loaders appear on page transitions. No console errors in the demo browser session. Role switch between attendee and organizer is clean and fast. The demo script is practised at least three times end-to-end. Gemini is explicitly named and visible in the interface or demo narration.
+This is a completable, winning plan. Execute the simulation engine and chatbot with full depth. Build everything else to a high visual standard but cut scope before cutting quality on those two.
+
+
+
+
+
+
+
+StadiumFlow AI — Full Build Prompt
+
+SYSTEM CONTEXT
+You are an elite full-stack web developer, senior UI/UX product designer, and AI experience architect. You are building a hackathon-winning, nationally presented, production-quality web application called StadiumFlow AI from scratch in a single complete build.
+You have unlimited generation credits. Do not truncate, summarize, or defer any section. Build every page, every component, every feature, and every interaction completely. Do not say "you can add this later" or "implement this similarly." Every part of this product must be fully built, fully wired, and fully functional in the output you produce.
+
+TECH STACK — NON-NEGOTIABLE
+
+Framework: React 18 with Vite
+Styling: Tailwind CSS (utility-first, no separate CSS files except for global resets and custom keyframe animations)
+AI: Google Gemini 1.5 Flash via @google/generative-ai JavaScript SDK
+Icons: Google Material Symbols (loaded via Google Fonts CDN link)
+Fonts: Inter (primary UI), loaded via Google Fonts CDN
+State: React Context API + useReducer for global venue state; useState for local component state
+Routing: React Router v6
+Animation: Framer Motion for page transitions, card entrances, and chatbot panel; CSS keyframes for heatmap pulse and route path draw
+Map: Fully custom hand-built SVG stadium map — no Leaflet, no Google Maps, no Mapbox
+Deployment: Vite build output, deployable to Vercel or Netlify free tier
+No backend. No database. No paid services. Everything runs in the browser.
+
+
+ENVIRONMENT SETUP
+Create a .env file at project root:
+VITE_GEMINI_API_KEY=your_key_here
+Access in code as import.meta.env.VITE_GEMINI_API_KEY. Never hardcode the key. Add .env to .gitignore.
+
+GLOBAL DESIGN SYSTEM
+Apply this design system consistently across every page and component. Do not deviate.
+Color tokens — define as Tailwind config extensions:
+background-base: #0A0D14
+background-surface: #111520
+background-card: #161C2D
+background-elevated: #1C2438
+border-subtle: #1E2A42
+border-active: #2E4080
+accent-primary: #3D7EFF  (electric blue)
+accent-secondary: #00E5C3 (teal green)
+accent-warning: #FF9500
+accent-danger: #FF3B55
+accent-success: #00C97A
+text-primary: #F0F4FF
+text-secondary: #8A9BC0
+text-muted: #4A5878
+status-low: #00C97A
+status-medium: #FFD60A
+status-high: #FF9500
+status-critical: #FF3B55
+Typography scale:
+
+Display: 48px / 600 weight / -0.02em tracking
+Heading 1: 32px / 600 weight
+Heading 2: 24px / 600 weight
+Heading 3: 18px / 600 weight
+Body large: 16px / 400 weight
+Body: 14px / 400 weight
+Caption: 12px / 400 weight
+All text uses Inter. All line-heights at 1.5.
+
+Card style:
+
+Background: background-card
+Border: 1px solid border-subtle
+Border-radius: 16px
+Padding: 20px
+Box-shadow: 0 4px 24px rgba(0,0,0,0.3)
+On hover: border shifts to border-active, shadow deepens
+Glassmorphism variant (for overlay panels): backdrop-filter: blur(16px), background rgba(22,28,45,0.85), border rgba(61,126,255,0.2)
+
+Motion rules:
+
+Page transitions: 300ms ease-out fade + 8px Y translate
+Card entrance: 200ms ease-out, staggered 60ms per card
+Alert banner: slide in from top, 250ms spring
+Chatbot panel: slide in from right, 300ms ease-out
+Heatmap zones: pulse animation 2s infinite on critical zones
+Route path: SVG stroke-dashoffset draw animation, 800ms ease-in-out
+Reduced motion: wrap all animations in prefers-reduced-motion media query fallback
+
+Skeleton loader pattern:
+
+Use animated shimmer gradient on background
+Skeleton components must match the exact shape and size of the real component they replace
+Show skeleton for 1200ms on first dashboard load (simulating data fetch)
+
+
+APPLICATION ARCHITECTURE
+Global State Shape
+Maintain a single global venue state object managed by a VenueContext using useReducer. This is the single source of truth for everything.
+venueState = {
+  eventPhase: "pre-match" | "live-match" | "halftime" | "post-match",
+  eventName: "Chennai Super Kings vs Mumbai Indians",
+  eventTime: "19:30",
+  venueName: "StadiumFlow Arena",
+  
+  gates: {
+    A: { label: "Gate A - North", congestion: 0-100, status: "low|medium|high|critical", eta: minutes },
+    B: { ... },
+    C: { ... },
+    D: { ... },
+    E: { ... },
+    F: { ... }
+  },
+  
+  corridors: {
+    north-ring: { congestion: 0-100, blocked: boolean },
+    south-ring: { ... },
+    east-ring: { ... },
+    west-ring: { ... },
+    inner-north: { ... },
+    inner-south: { ... },
+    inner-east: { ... },
+    inner-west: { ... }
+  },
+  
+  sections: {
+    A: { label: "Section A", gate: "A", capacity: 0-100, level: "lower|upper" },
+    B: { ... },
+    C: { ... },
+    D: { ... },
+    E: { ... },
+    F: { ... },
+    G: { ... },
+    H: { ... }
+  },
+  
+  foodStalls: {
+    F1: { name: "North Bites", near: "Gate A", section: "A", waitTime: minutes, crowdLevel: 0-100, type: ["veg","non-veg","drinks"] },
+    F2: { ... },
+    F3: { ... },
+    F4: { ... },
+    F5: { ... },
+    F6: { ... }
+  },
+  
+  washrooms: {
+    W1: { label: "Washroom North Upper", near: "Gate A", section: "A", waitTime: minutes, crowdLevel: 0-100, accessible: boolean },
+    W2: { ... },
+    W3: { ... },
+    W4: { ... }
+  },
+  
+  exits: {
+    north: { label: "North Exit", crowdLevel: 0-100, etaMinutes: number, parkingNearby: boolean },
+    south: { ... },
+    east: { ... },
+    west: { ... }
+  },
+  
+  activeAlerts: [
+    { id, type: "gate|route|facility|exit|emergency|organizer", message, severity: "info|warning|critical", timestamp, dismissible }
+  ],
+  
+  organizerAdvisories: [
+    { id, message, sentAt, targetZone }
+  ],
+  
+  aiRecommendations: [
+    { id, zone, action, urgency: "low|medium|high|critical", reason, advisoryText, approved: boolean, dismissed: boolean }
+  ],
+  
+  simulationActive: boolean,
+  spikeZone: null | zoneName
+}
+User Profile State (separate context)
+userProfile = {
+  role: "attendee" | "organizer",
+  name: string | "Guest",
+  seatSection: "A" | "B" | ... | "H",
+  ticketNumber: string,
+  accessibilityMode: boolean,
+  wheelchairMode: boolean,
+  familyGroupMode: boolean,
+  groupSize: number,
+  foodPreference: "veg" | "non-veg" | "any",
+  language: "en" | "ta" | "hi",
+  onboardingComplete: boolean
+}
+Simulation Engine
+Write a useSimulation custom hook that:
+
+On mount, starts a setInterval running every 10 seconds that applies random noise to all congestion values (±5 to ±15 variance, clamped to 0–100)
+Exposes a setPhase(phase) function that loads a phase preset and dispatches to venue state
+Exposes a triggerSpike(zone, entityType) function that immediately sets a zone to critical and schedules a dampening back to elevated over 90 seconds using a series of dispatches
+Automatically triggers a spike cascade when halftime begins — spikes F1, F2, F3 food stalls and W1, W2 washrooms simultaneously, and raises inner-north and inner-east corridor congestion
+
+Phase presets — exact baseline values:
+Pre-match: gates A=65, B=55, C=40, D=70, E=50, F=45. Corridors all 30–45. Food stalls 20–35. Washrooms 15–25. Exits 5.
+Live-match: gates A=20, B=25, C=15, D=20, E=18, F=22. Corridors 15–30. Food stalls 35–55. Washrooms 30–45. Exits 5.
+Halftime: gates 15–20. Corridors inner-north=82, inner-east=75, others 40–55. Food stalls F1=88, F2=79, F3=83, F4=40, F5=35, F6=30. Washrooms W1=85, W2=78, W3=35, W4=30. Exits 5.
+Post-match: gates 10–15. Corridors 55–75. Food stalls 20–30. Washrooms 20–30. Exits north=88, south=82, east=70, west=55.
+Recommendation Engine
+Write a pure function getRecommendations(venueState, userProfile) that returns:
+{
+  bestGate: { gateId, reason, eta, alternate },
+  bestRoute: { path: [nodeIds], etaMinutes, reason, accessibleVariant },
+  bestFood: { stallId, reason, waitTime, alternate },
+  bestWashroom: { washroomId, reason, waitTime, alternate },
+  bestExit: { exitId, reason, eta, alternate },
+  shouldLeaveNow: boolean,
+  leaveAdvice: string,
+  personalizedAlerts: [{ message, type, severity }]
+}
+Gate selection logic: score each gate as (100 - congestion) * gateProximityToSection. Return highest score. If accessibility mode, require the gate has step-free access flag.
+Food selection logic: score each stall as (100 - waitTime*3) + (100 - distanceFromSection*5). If food preference is veg, filter to veg-capable stalls only.
+Washroom selection logic: score as (100 - waitTime*4) + (100 - distanceFromSection*4). If wheelchair mode, require accessible flag.
+Exit selection logic: score as (100 - crowdLevel) + (100 - etaMinutes*6). For family/group mode, add 15 bonus to exits with parking nearby.
+Leave-now logic: return true if the user's nearest food stall or washroom is above 70 congestion AND the corridor to reach it is below 50 AND the current event phase is "live-match" within 5 simulated minutes of halftime.
+
+PAGES AND ROUTES
+/                    → Landing page
+/onboarding          → Attendee onboarding flow
+/dashboard           → Attendee matchday dashboard
+/navigate            → Stadium navigation with SVG map
+/facilities          → Food, washroom, and facilities assistant
+/exit                → Exit guidance
+/organizer           → Organizer control center dashboard
+/select-role         → Role selection screen
+All routes are protected so that /dashboard, /navigate, /facilities, /exit redirect to /onboarding if onboardingComplete is false. The /organizer route requires role to be "organizer."
+
+PAGE 1: LANDING PAGE (/)
+Build a complete, premium marketing landing page with these sections in order.
+Navigation bar: Fixed top. Dark background with blur. Left: StadiumFlow AI logo (SVG wordmark using accent-primary color for "AI" portion). Right: "For Attendees" link, "For Organizers" link, "Get Started" button in accent-primary.
+Hero section: Full viewport height. Dark radial gradient background with subtle stadium silhouette SVG in the background (low opacity, decorative). Center-aligned content. Headline: "Your Smartest Matchday Starts Here." Subheadline: "AI-powered gate guidance, real-time crowd routing, and zero-wait venue navigation — built for the world's largest sporting venues." Two CTAs side by side: "Get Started as Attendee" (filled accent-primary button) and "Organizer Login" (outlined button). Below CTAs, three small stat chips: "6x Faster Entry", "40% Less Queue Time", "Real-Time AI Routing." Animate hero text in on load with staggered fade-up.
+Problem section: Two-column. Left: bold statement text explaining the real pain points — crowded gates, long queues, missed halftime food, chaotic exits. Right: animated icon grid showing the four pain points with Material Symbols icons and short labels. Background: slightly lighter than base.
+How it works section: Three-step horizontal flow with connecting line. Step 1: "Tell us your seat" with icon. Step 2: "Get live AI guidance" with icon. Step 3: "Move smarter, wait less" with icon. Each step has a short description sentence.
+Feature highlights section: Bento-grid layout. Six cards of varying sizes arranged in a 2×3 or asymmetric grid. Each card has an icon, bold feature name, and one sentence description. Features: Smart Gate Assignment, Live Route Navigation, Wait-Time Intelligence, Personalized Alerts, Accessibility-First Design, Organizer Command Center. Use accent-primary for card border accents.
+Attendee vs Organizer split section: Two tall cards side by side. Left card for attendees with an inner preview mockup showing a simplified dashboard card layout. Right card for organizers with inner preview of control center zone cards. Each has a "Learn More" link and respective CTA.
+AI showcase section: Dark card spanning full width. Left side: chatbot conversation mockup showing a realistic exchange — user asks "Which gate should I use?" and the AI responds with a structured card showing recommendation, reason, ETA, and alternate option. Right side: bold text explaining the Gemini-powered intelligence. Small "Powered by Google Gemini" badge visible.
+Social proof / demo-ready strip: Three testimonial-style quote cards. Fictional but realistic quotes from a stadium operations manager, a regular attendee, and an accessibility advocate. These should feel real and trust-building.
+Footer: Logo, tagline, three column links (Product, Company, Support), and a "Powered by Google Gemini 1.5 Flash" credit with Google logo.
+
+PAGE 2: ROLE SELECTION (/select-role)
+Clean, centered, minimal page. Two large cards side by side (stacked on mobile).
+Left card: Attendee role. Icon: person with ticket. Headline: "I'm Attending." Description: "Get smart gate guidance, live navigation, and AI-powered queue help." CTA button: "Continue as Attendee." Guest mode link below: "Continue as Guest."
+Right card: Organizer role. Icon: dashboard/monitor. Headline: "I'm a Venue Organizer." Description: "Monitor zone health, detect bottlenecks, and coordinate your team with AI support." CTA button: "Enter Control Center."
+Selecting attendee goes to /onboarding. Selecting organizer sets role to organizer and goes directly to /organizer.
+
+PAGE 3: ATTENDEE ONBOARDING (/onboarding)
+Multi-step flow. Progress bar at top showing Step 1 of 4. Smooth slide animation between steps. Back and Next navigation.
+Step 1 — Match & Seat: Show the event name and date pre-filled (Chennai Super Kings vs Mumbai Indians, today's date). Input field for ticket/seat number. Dropdown for seat section (A through H with descriptive labels like "A — North Lower Stand"). Continue button.
+Step 2 — Your Preferences: Language selector with at least English, Tamil, Hindi. Toggle for Accessibility Mode. When accessibility mode is toggled on, reveal two sub-toggles: Wheelchair Mode and Avoid Stairs. Toggle for Family/Group Mode. When family/group is toggled, reveal a number input for group size (2–20).
+Step 3 — Food Preference: Three option chips: Vegetarian, Non-Vegetarian, No Preference. Short explainer text: "We use this to recommend the best food stalls for you." Skip option available.
+Step 4 — Ready: Summary card showing name (Guest if not entered), seat section, accessibility status, and group mode status. CTA: "Take Me to My Dashboard." Small text: "You can update these preferences anytime from your profile."
+On completing Step 4, set onboardingComplete: true in user profile and navigate to /dashboard.
+
+PAGE 4: ATTENDEE DASHBOARD (/dashboard)
+This is the most important page. Build it to a premium standard. Every element must be reactive to venue state changes.
+Top app bar: Fixed. Left: hamburger menu icon + "StadiumFlow AI" wordmark. Center: event name chip + live dot animation (green pulsing circle indicating live data). Right: notification bell icon with badge count + user avatar or initials circle + emergency SOS button (red, always visible).
+Persistent alert strip: Directly below the app bar. Scrollable horizontal strip of alert chips. Each chip has a severity color dot, short alert message, and a dismiss X. Alert examples: "Gate A: High congestion — use Gate C", "Halftime in 12 min — washroom queues building", "Corridor near Section B congested." Animate new alerts in from the left. Red/orange/blue color coding by severity.
+Main content — responsive grid layout:
+Left column (wider on desktop, full width on mobile):
+— Best Gate Card: Prominent card with large gate label. Show congestion bar for the recommended gate. Show a small "Alternate" chip with alternate gate. Show estimated entry time in minutes. Show reason text: "Recommended because Gate C has 38% congestion vs Gate A at 74%." If phase is post-match, this card transforms into the Best Exit Card automatically.
+— Live Route Summary Card: Shows "Your Route to Section [X]." Text-based turn-by-turn summary: "Enter Gate C → North Corridor → Ramp 2 → Section A Row 12." Show total ETA. Show a green/orange/red route health indicator. If any corridor on the route becomes congested, the card shows a reroute banner with animation: "Route Updated — avoiding congested North Inner Corridor." CTA: "See Full Map" linking to /navigate.
+— Match Phase Timeline: Horizontal timeline showing Pre-Match → Live → Halftime → Post-Match. Current phase is highlighted and animated. Acts as both status display and a guide to what recommendations will change next.
+Right column (narrower on desktop):
+— Quick Facilities Row: Two side-by-side smaller cards: nearest food stall and nearest washroom. Each shows name, wait time as a progress bar, crowd level, and distance. Below each: "See All Options" link to /facilities.
+— AI Assistant Widget: Compact chatbot preview card. Shows last AI message or a greeting. Input field at bottom. Six quick-action prompt chips arranged in 2 rows of 3: "Best gate for me", "Route to my seat", "Nearest washroom", "Best food now", "Should I leave now?", "Best exit after match." Tapping any chip opens the full chatbot panel. Has a "Powered by Gemini" badge.
+— Event Phase Recommendations: Context-sensitive card that changes content based on phase. Pre-match: "Best time to arrive." Live-match: "Best time to leave your seat." Halftime: "Go now — queue builds in 3 min." Post-match: "Exit now via South Exit — low crowd."
+— Emergency Help Card: Always visible, always at bottom of right column. Red-accented card. Large SOS button. Links: "Find Medical Help", "Find Help Desk", "Report Issue", "Lost in Venue." These trigger specific chatbot prompts.
+Floating chatbot dock: Bottom-right corner, fixed position. Circular button with chat icon and animated ring when a new context event occurs. Clicking opens the full chatbot panel as a slide-in panel from the right. The panel has a close button, the full conversation history, the input field, and the quick-action chips.
+
+PAGE 5: STADIUM NAVIGATION (/navigate)
+This page is built around the custom SVG stadium map. It must be visually striking and functionally complete.
+Page layout: Two-panel layout on desktop — SVG map takes 65% of width, route detail panel takes 35%. On mobile, map is full width with a collapsible route panel below.
+The SVG Stadium Map — build completely from scratch:
+The stadium is an oval shape. Build using SVG paths and ellipses. The structure from outside to inside:
+Outermost layer: parking lot zones (North Parking, South Parking, East Parking, West Parking) — simple rectangles around the oval, light gray fill.
+Perimeter ring: venue outer wall — dark fill with visible gate openings at 6 positions: Gate A (North), Gate B (NE), Gate C (East), Gate D (SE), Gate E (South), Gate F (West).
+Each gate: a small rectangular notch in the outer wall with a label. Gates have a color indicator circle that reflects their congestion status from venue state — green/yellow/orange/red.
+Outer corridor ring: between outer wall and seating sections. Represented as a ring shape. Color fill reflects the average congestion of outer corridors.
+Seating sections: 8 sections (A through H) arranged around the oval interior. Each is a wedge/trapezoid shape. Labeled clearly. Has a fill color reflecting section occupancy. The user's section is highlighted with an accent-primary border glow.
+Inner corridor ring: thin ring between seating sections and the pitch area. Colored by inner corridor congestion.
+Field / pitch: center oval. Green fill with white line markings (basic oval outline, center circle, goal areas). Pure decoration.
+Facilities overlays: small icon markers for food stalls (fork icon), washrooms (droplet icon), medical points (cross icon), exits (arrow icon), help desks (question mark icon). Each marker is an SVG group with the Material Symbol glyph and a colored dot.
+Congestion heatmap: each seating section and corridor has a semi-transparent fill layer on top of its base fill. The fill color and opacity are driven by the congestion value from venue state. Low = transparent green. Medium = semi-transparent yellow. High = semi-transparent orange. Critical = semi-transparent red with pulse animation.
+Route overlay:
+When a route is active, draw an SVG polyline or path over the map tracing from the user's current gate through the corridors to their section. The path uses stroke-dasharray and animates with stroke-dashoffset draw. Color: accent-primary (#3D7EFF). Width: 4px. Has directional arrows along the path at intervals. If an alternate route exists, draw it in dashed accent-secondary.
+Map controls:
+Top-left of map: zoom in / zoom out buttons. Reset view button. Fullscreen toggle. Top-right: legend panel toggle (shows what each color means with text labels — never just colors alone). Bottom-left: layer toggles — show/hide Food Stalls, Washrooms, Medical, Exits. Bottom-right: "My Location" button that pulses the user's section.
+Route detail panel:
+Shows selected destination type (Seat, Food, Washroom, Exit, Medical). Dropdown to change destination. Shows step-by-step route text. Shows total ETA. Shows route health (if any corridor on route is congested, shows warning). If accessibility mode: toggle between standard route and accessible route, with visual diff on the map. Alternate route suggestion card at bottom of panel.
+Destination selector row: Horizontal scrollable row of destination type chips above the detail panel — Seat, Food, Washroom, Exit, Medical, Help Desk. Selecting a type calculates and displays the best route to the nearest matching facility.
+
+PAGE 6: FACILITIES ASSISTANT (/facilities)
+Tabs: Three tabs at top — Food Stalls, Washrooms, All Facilities.
+Header card: Shows user's current section. Shows event phase. Shows a smart summary: "3 food stalls nearby. Best option: North Bites — 4 min wait. Washrooms: 2 reachable in under 3 min."
+Food stalls list:
+Each stall card shows: stall name, location tag, distance from user section, wait time as a large number + "min wait" label, crowd level as a horizontal bar (color coded), food type tags (veg/non-veg/drinks chips), and a "Best Option" or "Faster Alternative" badge where applicable.
+The best option card has an accent-primary border glow and a "⭐ Best for You" badge. The second card has a "Faster Alternative" badge in accent-secondary. Other cards are standard.
+Below each card: smart comparison text. Example: "North Bites is 3 min walk with 4 min wait. West Snacks is 5 min walk but only 1 min wait — saves 2 min overall." This tradeoff text must be computed from the simulation state values, not static.
+Filter row above the list: chip filters for Veg, Non-Veg, Drinks, Snacks, Under 5 min wait, Nearest first.
+Washrooms list: Same card pattern. Shows accessible flag with wheelchair icon if applicable. Wait time, crowd level, distance. Accessible rooms have a green "Accessible" badge.
+Wait-time trend micro-charts: Each facility card has a tiny sparkline chart (5 data points) showing how the wait time has changed in the last few simulation ticks. Rising trend in red, falling trend in green. Build this as a tiny inline SVG.
+
+PAGE 7: EXIT GUIDANCE (/exit)
+This page activates with full detail during post-match phase. During other phases, it shows a preview with a "Match is still live" notice.
+Post-match layout:
+Top banner: "Match has ended — here is your exit plan."
+Best Exit Card: Large, prominent. Shows recommended exit name, crowd level bar, ETA to reach exit from user's section, route summary (corridor path), and why this exit is best. If family/group mode is on: shows note "Chosen for easier group movement and parking proximity."
+All Exits Grid: Four cards in a 2×2 grid for North, South, East, West exits. Each shows: current crowd level with heat color, ETA in minutes, parking availability badge, transport connection badge. Cards are sortable by ETA or crowd level.
+Leave Now vs Wait card: If post-match begins and the primary exit is above 75 crowd level, show a "Wait 6 Minutes" card with a countdown timer. Explain: "Crowd at North Exit peaks in the next 4 minutes then drops by 30%. Waiting saves approximately 8 minutes." If exit is low crowd, show "Leave Now" in accent-success.
+Parking and transport guidance: Section below exit cards. Shows nearest parking zone from user's exit, estimated walk time, and a simple text-based directional guide. Shows nearest public transport stop (train/bus — text only, no real maps). If late-night match, shows a "Safe exit — well-lit route" note.
+Alternate exit suggestion: If primary exit is critical, auto-surface the next best exit with a clear alert-style card.
+
+PAGE 8: ORGANIZER CONTROL CENTER (/organizer)
+This page has a different visual layout from the attendee experience. It should feel like a professional operations control room.
+Top bar: Left: "Organizer Mode" label with a badge. Center: event name and current phase indicator. Right: "Simulate Scenario" button (prominent, accent-warning colored), notification count, and "Switch to Attendee View" link.
+Scenario simulation control panel: Directly below the top bar. A row of four scenario buttons: "Pre-Match Entry Rush", "Halftime Food Rush", "Corridor Spike", "Post-Match Exit Surge." Clicking any button triggers the corresponding simulation scenario in the venue state. Each button has an icon and a short label. An active scenario shows a pulsing indicator.
+Main grid layout — three columns:
+Left column — Zone Health Overview:
+A grid of zone cards, one per gate and one per major corridor zone. Each card shows: zone name, current congestion as a large percentage number, a horizontal congestion bar, trend arrow (up/down/stable), and a severity badge (Low/Medium/High/Critical) with color coding. Cards at Critical severity have a pulsing red border. The grid updates in real time as simulation state changes.
+Center column — Live Operations Feed:
+Bottleneck Alerts panel: Scrollable list of active alerts, newest first. Each alert shows: timestamp, zone name, severity chip, and description. Critical alerts are red, high are orange, medium are yellow. Each has a Resolve button and a View button.
+Advisory Log: Below alerts. Shows all sent advisories with timestamp, content preview, and target zone. Has "Send New Advisory" button that opens a modal composer.
+Queue Overview table: Table with rows for each food stall and washroom. Columns: name, current wait time, crowd level, trend, action needed. If a stall exceeds 75 wait score, an "Open Counter" action chip appears inline in the table row.
+Right column — AI Recommendations:
+AI Recommendations Panel: List of AI-generated operational suggestions. Each suggestion card shows: urgency badge (Critical/High/Medium/Low), zone name, recommended action in bold, reason sentence, and suggested attendee-facing advisory text. Two action buttons: "Approve & Send" and "Dismiss." Approved advisories appear in the attendee alert strip. Dismissed cards are removed with a fade animation.
+These recommendations are generated by calling Gemini with an organizer-mode system prompt injecting the full venue state. Generate them when: a zone crosses a congestion threshold, a scenario is triggered, or the organizer clicks "Refresh Recommendations."
+Organizer AI Chatbot: Below the recommendations panel. Same chatbot architecture as attendee side but with organizer system prompt. Organizer-specific quick-action chips: "Which zone is most at risk?", "Where to deploy staff?", "Which exit needs support?", "Should I open another counter?", "What advisory to send now?" Responses use the operational format: urgency level, zone, action, advisory text.
+Congestion trend chart: Full-width card at the bottom of the center or right column. A line chart showing congestion levels for the 5 busiest zones over simulated time. Build using an SVG-based line chart without a charting library — compute path coordinates from data points directly. X-axis: time ticks. Y-axis: congestion 0–100. Each zone has a distinct stroke color from the palette.
+
+CHATBOT — FULL SPECIFICATION
+The chatbot is built as a shared component that renders differently based on user role.
+Panel structure:
+Full-height slide-in panel from the right. Width: 380px on desktop, full width on mobile. Background: glassmorphism card style. Top: "AI Assistant" header with "Powered by Google Gemini" badge and close button. Middle: scrollable conversation history. Each message is a bubble — user messages on the right in accent-primary, assistant messages on the left in background-elevated. Bottom: quick-action chip row + text input + send button.
+Attendee chatbot — Gemini system prompt template:
+You are StadiumFlow AI, a real-time matchday assistant for stadium attendees.
+
+Current venue state:
+- Event: {eventName}
+- Phase: {eventPhase}
+- User's seat section: {seatSection}
+- Nearest gate: {nearestGate} — Congestion: {gateAcongestion}%
+- Recommended gate: {bestGate} — Congestion: {bestGateCongestion}%
+- Route corridor status: {corridorStatus}
+- Nearest food stall: {foodStallName} — Wait: {foodWait} min
+- Best food stall: {bestFoodName} — Wait: {bestFoodWait} min
+- Nearest washroom wait: {washroomWait} min
+- Best exit: {bestExit} — Crowd: {exitCrowd}%
+- Active alerts: {alertSummary}
+- Accessibility mode: {accessibilityMode}
+- Family/group mode: {familyMode}, group size: {groupSize}
+
+Always respond in this exact structure:
+**Recommendation:** [one clear directive]
+**Why:** [one sentence reason based on live conditions]
+**Time Impact:** [ETA in minutes or time saved]
+**Backup Option:** [one sentence alternate]
+
+Keep responses concise. Be specific about numbers. Always use live data from the venue state above.
+Organizer chatbot — Gemini system prompt template:
+You are StadiumFlow AI's operations assistant for venue organizers.
+
+Full venue state:
+- Phase: {eventPhase}
+- Gate congestion: {gatesSummary}
+- Corridor status: {corridorsSummary}
+- Food stall queues: {foodSummary}
+- Washroom queues: {washroomSummary}
+- Exit crowd levels: {exitsSummary}
+- Active alerts count: {alertCount}
+- Highest risk zone: {riskZone} at {riskLevel}%
+
+Always respond in this exact structure:
+**Urgency:** [Critical / High / Medium / Low]
+**Zone:** [specific zone name]
+**Recommended Action:** [operational directive for staff]
+**Reason:** [one sentence based on live data]
+**Suggested Advisory for Attendees:** [short message to broadcast]
+
+Be direct. Use operational language. Prioritize safety and crowd flow.
+Context injection: Build a buildAttendeeContext(venueState, userProfile) function and a buildOrganizerContext(venueState) function. These serialize the relevant parts of venue state into the template strings above. Call them at the moment of each API call — not in advance — so the context is always current at call time.
+Response parsing: After receiving a Gemini response, parse the structured output into four fields: recommendation, why, timeImpact, backupOption. Render these as four distinct labeled rows inside a styled response card, not as raw prose. Each field has a label in text-muted color and content in text-primary.
+Rate limit mitigation: Maintain a response cache as a Map keyed on {phase}:{userSection}:{messageHash}. If an identical or near-identical prompt was answered in the last 45 seconds, return the cached response immediately with a subtle "Cached response" indicator. On error from Gemini API, show a graceful error card: "Unable to reach AI assistant. Here is a quick suggestion based on current conditions:" followed by a locally computed recommendation from the recommendation engine.
+Quick-action chips — attendee: "Best gate for me", "Route to my seat", "Nearest washroom", "Best food now", "Should I leave now?", "Best exit after match", "Help me avoid crowds"
+Quick-action chips — organizer: "Highest risk zone now", "Where to deploy staff?", "Which exit needs support?", "Should I open another counter?", "What advisory to send?"
+
+ALERT SYSTEM
+Build a global alert manager that:
+
+Listens to venue state changes via the VenueContext
+When a gate, corridor, food stall, washroom, or exit crosses a congestion threshold (gates: 70, corridors: 65, food: 75, washrooms: 70, exits: 80), generates an alert automatically
+Adds the alert to activeAlerts in venue state
+Renders all active alerts in the persistent alert strip on the attendee dashboard
+Shows a toast notification for new alerts that auto-dismisses after 5 seconds
+Organizer advisories broadcast through a separate mechanism that adds a special-styled advisory banner above the attendee alert strip
+
+Alert messages must use this template: "[Zone/Facility name]: [condition description]. [Action recommendation]." Example: "Gate A: High congestion detected. Switch to Gate C for faster entry."
+
+ACCESSIBILITY IMPLEMENTATION
+Implement these as non-negotiable, fully working features:
+High-contrast mode: A CSS class high-contrast on the root html element that overrides background colors to pure black, text to pure white, accent colors to yellow (#FFD700), borders to white, and removes all semi-transparent effects. Toggle via a button in the top navigation bar and in onboarding preferences.
+Large text mode: A CSS class large-text on html that scales body font-size from 14px to 17px and all headings proportionally. All layout must remain intact at large text.
+Keyboard navigation: Every interactive element must be reachable via Tab key. Focus rings must be clearly visible — use a 2px solid accent-primary ring with 2px offset. The chatbot quick-action chips must be keyboard activatable. The SVG map must support keyboard navigation to select sections.
+ARIA labels: Every icon button must have aria-label. The alert strip must use role="alert" and aria-live="polite". Status badges must use aria-label describing the condition in words. The SVG map must have role="img" with a descriptive aria-label on the entire map, and aria-label on each gate and section marker.
+Screen reader order: Use sr-only classes for supplementary text that provides context only available visually (e.g., "Gate A has 74 percent congestion, status: High"). Use visually-hidden headings to label page regions.
+Reduced motion: Wrap all Framer Motion animations with useReducedMotion(). If reduced motion is preferred, replace animations with instant transitions. CSS animations must use @media (prefers-reduced-motion: reduce) to disable pulses and draws.
+Accessibility mode routing: When wheelchairMode is true, filter all route path options so that only segments flagged stairFree: true are used. If no stair-free path exists to the primary destination, show a "Nearest accessible alternative" card instead of routing to the original destination.
+Color + icon rule: Every status indicator in the entire product must use both a color and either a text label or an icon. No color-only status anywhere. This is enforced as a design rule, not optional.
+
+PERSONALIZATION VISIBLE IN UI
+Every recommendation card must show a one-line contextual explanation making personalization visible. Examples:
+"Recommended for your section (A) — Gate C is 180m closer than Gate A"
+"Accessible route selected — stair-free path via East Ramp"
+"Family route — avoids high-traffic North Inner Corridor"
+"Based on halftime phase — food queue builds in 4 min, go now"
+"Vegetarian stalls only — filtered for your food preference"
+These explanations must be computed from real profile values, not hardcoded. If the user is in Section A and accessibility mode is off and family mode is off, the explanation must say something different than it would for a wheelchair user in Section F with a group of 5.
+
+LOADING, EMPTY, AND ERROR STATES
+Loading states: On dashboard first load, every card shows a skeleton loader for 1200ms before the real content animates in. The skeleton must match the card shape exactly. Use shimmer animation.
+Empty states: If the alert strip has no alerts, show a subtle "No active alerts — all clear" message with a green check icon. If organizer AI recommendations are empty, show "All zones operating normally — no actions required." If chat history is empty, show an onboarding message: "Hi [name]. I'm your AI matchday assistant. How can I help?"
+Error states: If Gemini API returns an error, the chatbot shows a graceful error card with a locally computed fallback recommendation. If venue state fails to update (simulated edge case), show a "Reconnecting to live feed..." banner with a spinner. Forms in onboarding show inline validation errors below each field, never just red border.
+
+RESPONSIVE BEHAVIOR
+The app must work correctly at 375px (mobile), 768px (tablet), and 1280px+ (desktop).
+Dashboard: single column on mobile, two columns on tablet, two columns with larger proportions on desktop.
+SVG map: scales using viewBox preserveAspectRatio. On mobile, the map is full width with the route panel below as a collapsed drawer. Tap the drawer handle to expand.
+Organizer dashboard: three columns on desktop, two columns on tablet, single column on mobile with tabs for switching between columns.
+Chatbot panel: full-width bottom sheet on mobile, right slide-in panel on desktop.
+All touch targets must be a minimum of 44×44px on mobile.
+
+DEMO SIMULATION — JUDGE INTERACTION
+Build a floating "Demo Controls" panel that is visible only in demo mode (activated by a keyboard shortcut or a small toggle in the footer). This panel has:
+Four scenario trigger buttons: "Trigger Gate Rush", "Trigger Halftime Rush", "Trigger Corridor Spike", "Trigger Exit Surge." Each shows what will happen before the judge clicks.
+A phase selector: dropdown to jump to any phase instantly.
+An "Auto Demo" button that runs through a scripted sequence — pre-match for 15 seconds, then live match for 10 seconds, then halftime for 20 seconds, then post-match for 15 seconds — automatically advancing through the scenario so a judge can watch the full cascade without manual interaction.
+A reset button that returns everything to pre-match baseline.
+This panel must be clearly labeled "Demo Mode — Simulation Controls" so judges understand it is for demonstration.
+
+FINAL QUALITY REQUIREMENTS
+Code must be written in clean, readable React with named components, no anonymous component functions in JSX, no hardcoded colors outside of the Tailwind config, no commented-out dead code, and no console.log statements in the final build.
+All components must be in their own files under a logical folder structure. Contexts must be in a /contexts folder. Hooks in /hooks. Page components in /pages. Shared UI components in /components/ui. Domain components (gate cards, route cards, chatbot, map) in /components/domain.
+Every prop must be explicitly typed using PropTypes or JSDoc. No implicit any values.
+The Gemini API key must never appear in any component file. It lives only in .env and is accessed through a single /services/gemini.js service module that all AI calls go through.
+The simulation engine runs only in a single useSimulation hook that is initialized once at the app root. No component calls setInterval independently.
+Build output must have no TypeScript or linting errors. Run Prettier formatting across all files before considering the build complete.
+
+OUTPUT INSTRUCTION
+Build the complete application. Every file, every component, every page, every hook, every service, every context, every utility function — completely and fully. Do not truncate any file. Do not use placeholders. Do not say "add your logic here." Do not leave any TODO comments. Every function must have a real implementation. Every component must render real content connected to real state.
+Start with the Tailwind config and global setup, then the contexts and simulation engine, then the SVG map, then pages in the order: dashboard, organizer, navigate, facilities, exit, onboarding, role selection, landing. Build the chatbot as a shared component after the dashboard.
+When complete, the product must be runnable with npm install && npm run dev with only a valid Gemini API key in the .env file required.
