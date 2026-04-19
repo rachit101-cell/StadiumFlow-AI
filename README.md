@@ -4,16 +4,19 @@
 
 [![Deploy to Cloud Run](https://deploy.cloud.run/button.svg)](https://deploy.cloud.run)
 
+**Live Demo:** [https://stadiumflow-ai-icvapxu2vq-uc.a.run.app](https://stadiumflow-ai-icvapxu2vq-uc.a.run.app)
+
 ---
 
 ## Overview
 
-StadiumFlow AI is a production-grade React 18 application that eliminates matchday friction using real-time crowd simulation and AI-assisted decision making. The platform serves two audiences simultaneously: **attendees** receive personalized navigation guidance, and **organizers** receive operational intelligence to manage crowd flow.
+StadiumFlow AI is a production-grade React 19 application that eliminates matchday friction using real-time crowd simulation and AI-assisted decision making. The platform serves two audiences simultaneously: **attendees** receive personalized navigation guidance, and **organizers** receive operational intelligence to manage crowd flow.
 
 ### Key Features
 
 | Feature | Description |
 |---|---|
+| 💎 **Command Center UX** | Premium interface featuring Vanta.js 3D backgrounds, multi-layered glassmorphism, cinematic page transitions, and 3D card tilt effects |
 | 🚪 **Smart Gate Routing** | Weighted scoring algorithm recommends the optimal entry gate based on live congestion, ETA, and seat proximity |
 | 🗺️ **Live Crowd Map** | SVG venue map with real-time congestion overlays, animated ripple alerts, and zone breathe animations |
 | 🤖 **AI Chat Assistant** | Streaming Gemini 1.5 Flash integration with full context injection, prompt injection protection, and 45-second LRU cache |
@@ -179,7 +182,7 @@ The project uses **Vitest** with **@testing-library/react** and **jsdom**.
 
 ```bash
 npm run test:run       # Run all tests once
-npm run test:coverage  # Run with coverage report (thresholds: 70% lines/functions)
+npm run test:coverage  # Run with coverage report (thresholds: 40%)
 npm run test           # Watch mode
 npm run test:ui        # Vitest UI
 ```
