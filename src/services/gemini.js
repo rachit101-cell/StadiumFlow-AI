@@ -404,33 +404,108 @@ Be direct and professional.
 
 // ─── Streaming Response ───────────────────────────────────────────────────────
 /**
- * Streams a Gemini response and calls onChunk with each text delta.
- * Falls back to a non-streaming call on error.
+ * Streams a Gemini response as an async generator, yielding chunks of data.
+ * Fully integrates local resolvers, caching, and rate limiting.
  *
- * @param {string} prompt - The full prompt including system context
- * @param {Function} onChunk - Callback invoked with each incremental text chunk
- * @param {Function} onComplete - Callback invoked when streaming completes with full text
- * @returns {Promise<void>}
+ * @param {string} promptText - Raw user message
+ * @param {string} role - 'attendee' | 'organizer'
+ * @param {Object} venueState - Current venue state from VenueContext
+ * @param {Object} userProfile - User profile from UserContext
+ * @returns {AsyncGenerator<{ chunk: string, isCached?: boolean, isErrorFallback?: boolean, isLocal?: boolean }>}
  */
-export async function streamGeminiResponse(prompt, onChunk, onComplete) {
-  if (!hasValidKey || !model) {
-    onComplete(sanitizeGeminiOutput('⚠️ No Gemini API key configured. See .env.example.'));
+export async function* streamGeminiResponse(promptText, role, venueState, userProfile) {
+  const sanitized  = sanitizeUserInput(promptText);
+  const normalized = sanitized.toLowerCase();
+
+  // 1. Handle greetings/filler locally — instant, no API
+  if (GREETING_RE.test(sanitized) || FILLER_RE.test(sanitized)) {
+    yield { chunk: getCasualReply(role, venueState, userProfile), isCached: false, isErrorFallback: false, isLocal: true };
     return;
   }
+
+  // 2. Handle help / "what to do" locally
+  if (HELP_RE.test(sanitized)) {
+    yield { chunk: getHelpReply(role, venueState), isCached: false, isErrorFallback: false, isLocal: true };
+    return;
+  }
+
+  // 3. Resolve quick-action chips locally — instant, no API
+  const recs = getRecommendations(venueState, userProfile);
+  const localText = role === 'organizer'
+    ? resolveLocalOrganizer(normalized, venueState)
+    : resolveLocalAttendee(normalized, recs, venueState, userProfile);
+
+  if (localText) {
+    geminiMetrics.recordCall(0, true, false);
+    yield { chunk: sanitizeGeminiOutput(localText), isCached: false, isErrorFallback: false, isLocal: true };
+    return;
+  }
+
+  // 4. No valid API key
+  if (!hasValidKey || !model) {
+    yield {
+      chunk: `⚠️ No Gemini API key configured.\n\nAdd your key to the **.env** file:\n\`VITE_GEMINI_API_KEY=your_key_here\`\n\nGet a free key at aistudio.google.com, then restart the dev server.`,
+      isCached: false,
+      isErrorFallback: true,
+    };
+    return;
+  }
+
+  // 5. Check cache
+  const msgHash  = simpleHash(normalized);
+  const section  = userProfile?.seatSection || 'none';
+  const cacheKey = `${role}:${venueState.eventPhase}:${section}:${msgHash}`;
+
+  const cached = getCachedResponse(cacheKey);
+  if (cached) {
+    geminiMetrics.recordCall(0, true, false);
+    yield { chunk: cached, isCached: true, isErrorFallback: false };
+    return;
+  }
+
+  // 6. Rate limit check
+  if (!rateLimiter.isAllowed()) {
+    const fallback = localText || 'Rate limit reached. Please wait a moment and try again.';
+    yield { chunk: sanitizeGeminiOutput(fallback), isCached: false, isErrorFallback: true };
+    return;
+  }
+
+  // 7. Queue API calls
+  if (pendingRequest) {
+    try { await pendingRequest; } catch (_) { /* ignore inner error */ }
+  }
+
+  // 8. Call Gemini with Streaming
+  const systemPrompt = role === 'organizer' ? organizerSystemInstruction : attendeeSystemInstruction;
+  const contextData  = role === 'organizer'
+    ? buildOrganizerContext(venueState)
+    : buildAttendeeContext(venueState, userProfile);
+
+  const fullPrompt = `${systemPrompt}\n\n${contextData}\n\nUser: ${sanitized}`;
+  const startTime  = Date.now();
+
   try {
-    const result = await model.generateContentStream(prompt);
+    const result = await model.generateContentStream(fullPrompt);
     let fullText = '';
     for await (const chunk of result.stream) {
       const chunkText = chunk.text();
       fullText += chunkText;
-      onChunk(chunkText);
+      yield { chunk: sanitizeGeminiOutput(chunkText), isCached: false, isErrorFallback: false };
     }
-    onComplete(sanitizeGeminiOutput(fullText));
-    geminiMetrics.recordCall(0, false, false);
+    setCache(cacheKey, sanitizeGeminiOutput(fullText));
+    geminiMetrics.recordCall(Date.now() - startTime, false, false);
   } catch (error) {
     console.error('Gemini streaming error:', error);
-    geminiMetrics.recordCall(0, false, true);
-    onComplete(sanitizeGeminiOutput('⚠️ AI assistant temporarily unavailable. Please try again.'));
+    geminiMetrics.recordCall(Date.now() - startTime, false, true);
+    const msg = error?.message || '';
+    const errorText = msg.includes('429') || msg.includes('quota')
+      ? '⚠️ Gemini rate limit reached. Please wait a moment and try again.'
+      : msg.includes('API_KEY') || msg.includes('403')
+      ? '⚠️ Invalid Gemini API key. Check your VITE_GEMINI_API_KEY in the .env file.'
+      : msg.includes('404')
+      ? '⚠️ Model not available. The Gemini API may be temporarily unavailable.'
+      : `⚠️ AI assistant temporarily unavailable. Please try again.\n\n(${msg})`;
+    yield { chunk: sanitizeGeminiOutput(errorText), isCached: false, isErrorFallback: true };
   }
 }
 
