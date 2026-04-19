@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import PropTypes from 'prop-types';
 import { PageProgressBar } from './components/effects/PageProgressBar';
 import { VenueProvider } from './contexts/VenueContext';
 import { UserProvider } from './contexts/UserContext';
+import ErrorBoundary from './components/ErrorBoundary';
+import { useUser } from './contexts/UserContext';
 
 // Layouts
 import { AttendeeLayout } from './layouts/AttendeeLayout';
@@ -29,6 +32,36 @@ const instantVariants = {
   initial: {}, animate: {}, exit: {},
 };
 
+/**
+ * ProtectedRoute — redirects to /select-role if role or onboarding requirements
+ * are not met. Renders children otherwise.
+ *
+ * @param {{ children: React.ReactNode, requiredRole: string|null, requireOnboarding: boolean }} props
+ */
+function ProtectedRoute({ children, requiredRole, requireOnboarding }) {
+  const { userProfile } = useUser();
+
+  if (requiredRole && userProfile.role !== requiredRole) {
+    return <Navigate to="/select-role" replace />;
+  }
+
+  if (requireOnboarding && !userProfile.onboardingComplete) {
+    return <Navigate to="/onboarding" replace />;
+  }
+
+  return children;
+}
+
+ProtectedRoute.propTypes = {
+  children:         PropTypes.node.isRequired,
+  requiredRole:     PropTypes.string,
+  requireOnboarding: PropTypes.bool,
+};
+ProtectedRoute.defaultProps = {
+  requiredRole:     null,
+  requireOnboarding: false,
+};
+
 /* Inner component so useLocation works inside BrowserRouter */
 function AnimatedRoutes() {
   const location = useLocation();
@@ -38,25 +71,80 @@ function AnimatedRoutes() {
   return (
     <>
       <PageProgressBar />
+
+      {/* Skip-to-content — first focusable element on every page */}
+      <a href="#main-content" className="skip-nav">
+        Skip to main content
+      </a>
+
       <AnimatePresence mode="wait">
-        <motion.div key={location.pathname} variants={variants} initial="initial" animate="animate" exit="exit">
+        <motion.div
+          key={location.pathname}
+          variants={variants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          id="main-content"
+        >
           <Routes location={location}>
             {/* Public / Landing */}
-            <Route path="/" element={<Landing />} />
-            <Route path="/select-role" element={<SelectRole />} />
+            <Route path="/" element={
+              <ErrorBoundary>
+                <Landing />
+              </ErrorBoundary>
+            } />
+            <Route path="/select-role" element={
+              <ErrorBoundary>
+                <SelectRole />
+              </ErrorBoundary>
+            } />
 
             {/* Attendee App */}
             <Route element={<AttendeeLayout />}>
-              <Route path="/onboarding" element={<Onboarding />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/navigate" element={<NavigateView />} />
-              <Route path="/facilities" element={<FacilitiesView />} />
-              <Route path="/exit" element={<ExitGuidance />} />
+              <Route path="/onboarding" element={
+                <ErrorBoundary>
+                  <Onboarding />
+                </ErrorBoundary>
+              } />
+              <Route path="/dashboard" element={
+                <ErrorBoundary>
+                  <ProtectedRoute requireOnboarding>
+                    <Dashboard />
+                  </ProtectedRoute>
+                </ErrorBoundary>
+              } />
+              <Route path="/navigate" element={
+                <ErrorBoundary>
+                  <ProtectedRoute requireOnboarding>
+                    <NavigateView />
+                  </ProtectedRoute>
+                </ErrorBoundary>
+              } />
+              <Route path="/facilities" element={
+                <ErrorBoundary>
+                  <ProtectedRoute requireOnboarding>
+                    <FacilitiesView />
+                  </ProtectedRoute>
+                </ErrorBoundary>
+              } />
+              <Route path="/exit" element={
+                <ErrorBoundary>
+                  <ProtectedRoute requireOnboarding>
+                    <ExitGuidance />
+                  </ProtectedRoute>
+                </ErrorBoundary>
+              } />
             </Route>
 
             {/* Organizer App */}
             <Route element={<OrganizerLayout />}>
-              <Route path="/organizer" element={<Organizer />} />
+              <Route path="/organizer" element={
+                <ErrorBoundary>
+                  <ProtectedRoute requiredRole="organizer">
+                    <Organizer />
+                  </ProtectedRoute>
+                </ErrorBoundary>
+              } />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />

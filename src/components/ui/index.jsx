@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, memo } from 'react';
 import { motion } from 'framer-motion';
+import PropTypes from 'prop-types';
 
 /* ============================================================
    ANIMATED NUMBER — spring-based counter
@@ -16,7 +17,7 @@ const getCongestionMeta = (v) => {
   return         { color: 'var(--status-safe)',    text: 'var(--status-safe)',    classes: '', glow: 'transparent' };
 };
 
-export const CongestionMeter = ({ value = 0, label, className = '' }) => {
+export const CongestionMeter = memo(function CongestionMeter({ value, label, className }) {
   const meta = getCongestionMeta(value);
   return (
     <div className={`flex flex-col gap-[6px] ${className}`}>
@@ -47,6 +48,11 @@ export const CongestionMeter = ({ value = 0, label, className = '' }) => {
         </div>
       )}
       <div
+        role="progressbar"
+        aria-valuenow={value}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={label ? `${label}: ${value}%` : `Congestion: ${value}%`}
         style={{
           height: '5px',
           background: 'var(--bg-elevated)',
@@ -69,6 +75,16 @@ export const CongestionMeter = ({ value = 0, label, className = '' }) => {
       </div>
     </div>
   );
+});
+
+CongestionMeter.propTypes = {
+  value:     PropTypes.number.isRequired,
+  label:     PropTypes.string,
+  className: PropTypes.string,
+};
+CongestionMeter.defaultProps = {
+  label:     '',
+  className: '',
 };
 
 /* ============================================================
@@ -85,7 +101,7 @@ const STATUS_MAP = {
   critical: { bg: 'var(--status-danger-bg)',  border: 'var(--status-danger-border)',  text: 'var(--status-danger)',  dot: 'var(--status-danger)',  label: 'Critical' },
 };
 
-export const StatusBadge = ({ status = 'low', label, icon, className = '' }) => {
+export const StatusBadge = memo(function StatusBadge({ status, label, icon, className }) {
   const c = STATUS_MAP[status] || STATUS_MAP.low;
   const displayLabel = label || c.label;
   return (
@@ -114,33 +130,56 @@ export const StatusBadge = ({ status = 'low', label, icon, className = '' }) => 
         />
       )}
       {displayLabel}
-      <span className="sr-only">{`Status: ${status}`}</span>
+      <span className="sr-only">{`— Congestion status: ${displayLabel}`}</span>
     </span>
   );
+});
+
+StatusBadge.propTypes = {
+  status:    PropTypes.oneOf(['low', 'safe', 'caution', 'medium', 'warning', 'high', 'danger', 'critical']),
+  label:     PropTypes.string,
+  icon:      PropTypes.string,
+  className: PropTypes.string,
+};
+StatusBadge.defaultProps = {
+  status:    'low',
+  label:     null,
+  icon:      null,
+  className: '',
 };
 
 /* ============================================================
    AI BADGE — for Gemini-generated content
    ============================================================ */
-export const AIBadge = ({ className = '' }) => (
-  <span
-    className={`inline-flex items-center gap-1 ${className}`}
-    style={{
-      background: 'linear-gradient(135deg, rgba(59,130,246,0.12), rgba(20,184,166,0.08))',
-      border: '1px solid var(--ai-border)',
-      borderRadius: '6px',
-      padding: '2px 6px',
-      fontFamily: 'var(--font-body)',
-      fontSize: '10px',
-      fontWeight: 700,
-      textTransform: 'uppercase',
-      letterSpacing: 'var(--tracking-widest)',
-      color: 'var(--accent-blue-bright)',
-    }}
-  >
-    <span style={{ fontSize: '10px' }}>✦</span> AI
-  </span>
-);
+export const AIBadge = memo(function AIBadge({ className }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1 ${className}`}
+      aria-label="AI-generated content"
+      style={{
+        background: 'linear-gradient(135deg, rgba(59,130,246,0.12), rgba(20,184,166,0.08))',
+        border: '1px solid var(--ai-border)',
+        borderRadius: '6px',
+        padding: '2px 6px',
+        fontFamily: 'var(--font-body)',
+        fontSize: '10px',
+        fontWeight: 700,
+        textTransform: 'uppercase',
+        letterSpacing: 'var(--tracking-widest)',
+        color: 'var(--accent-blue-bright)',
+      }}
+    >
+      <span style={{ fontSize: '10px' }} aria-hidden="true">✦</span> AI
+    </span>
+  );
+});
+
+AIBadge.propTypes = {
+  className: PropTypes.string,
+};
+AIBadge.defaultProps = {
+  className: '',
+};
 
 /* ============================================================
    BUTTON — 5 variants × 3 sizes, full state coverage
@@ -160,7 +199,6 @@ const BTN_VARIANTS = {
       boxShadow: '0 1px 2px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)',
     },
     extraClass: 'btn-primary',
-    hover: {},
   },
   secondary: {
     style: {
@@ -169,7 +207,6 @@ const BTN_VARIANTS = {
       color: 'var(--text-primary)',
     },
     extraClass: '',
-    hover: {},
   },
   ghost: {
     style: {
@@ -178,7 +215,6 @@ const BTN_VARIANTS = {
       color: 'var(--text-secondary)',
     },
     extraClass: '',
-    hover: {},
   },
   danger: {
     style: {
@@ -187,7 +223,6 @@ const BTN_VARIANTS = {
       color: 'var(--status-danger)',
     },
     extraClass: 'btn-danger-pulse',
-    hover: {},
   },
   icon: {
     style: {
@@ -196,7 +231,6 @@ const BTN_VARIANTS = {
       color: 'var(--text-primary)',
     },
     extraClass: '',
-    hover: {},
     isIcon: true,
   },
   outline: {
@@ -206,23 +240,22 @@ const BTN_VARIANTS = {
       color: 'var(--text-primary)',
     },
     extraClass: '',
-    hover: {},
   },
 };
 
-export const Button = ({
+export const Button = memo(function Button({
   children,
-  variant = 'primary',
-  size = 'md',
+  variant,
+  size,
   onClick,
-  className = '',
-  type = 'button',
-  disabled = false,
-  loading = false,
+  className,
+  type,
+  disabled,
+  loading,
   leftIcon,
-  style: extraStyle = {},
+  style: extraStyle,
   ...props
-}) => {
+}) {
   const v = BTN_VARIANTS[variant] || BTN_VARIANTS.primary;
   const s = BTN_SIZES[size] || BTN_SIZES.md;
   const isIcon = v.isIcon;
@@ -232,7 +265,7 @@ export const Button = ({
     alignItems: 'center',
     justifyContent: 'center',
     gap: '8px',
-    height: isIcon ? s.height : s.height,
+    height: s.height,
     width: isIcon ? s.height : undefined,
     padding: isIcon ? 0 : s.padding,
     fontSize: s.fontSize,
@@ -249,7 +282,6 @@ export const Button = ({
     ...extraStyle,
   };
 
-  // Style adjustments for ghost (smaller padding)
   if (variant === 'ghost') {
     baseStyle.padding = isIcon ? 0 : (size === 'sm' ? '0 8px' : size === 'lg' ? '0 20px' : '0 14px');
   }
@@ -289,23 +321,48 @@ export const Button = ({
       )}
     </motion.button>
   );
+});
+
+Button.propTypes = {
+  children:  PropTypes.node,
+  variant:   PropTypes.oneOf(['primary', 'secondary', 'ghost', 'danger', 'icon', 'outline']),
+  size:      PropTypes.oneOf(['sm', 'md', 'lg']),
+  onClick:   PropTypes.func,
+  className: PropTypes.string,
+  type:      PropTypes.oneOf(['button', 'submit', 'reset']),
+  disabled:  PropTypes.bool,
+  loading:   PropTypes.bool,
+  leftIcon:  PropTypes.string,
+  style:     PropTypes.object,
+};
+Button.defaultProps = {
+  children:  null,
+  variant:   'primary',
+  size:      'md',
+  onClick:   undefined,
+  className: '',
+  type:      'button',
+  disabled:  false,
+  loading:   false,
+  leftIcon:  null,
+  style:     {},
 };
 
 /* ============================================================
    CARD — standard | accent | status | glass
    ============================================================ */
-export const Card = ({
+export const Card = memo(function Card({
   children,
-  variant = 'standard',
+  variant,
   statusColor,
-  glass = false,
-  hover = true,
-  className = '',
-  role: roleProp = 'region',
+  glass,
+  hover,
+  className,
+  role: roleProp,
   'aria-label': ariaLabel,
   style: extraStyle,
   ...props
-}) => {
+}) {
   const baseStyle = {
     borderRadius: 'var(--card-radius)',
     overflow: 'hidden',
@@ -336,7 +393,7 @@ export const Card = ({
     variantClass = 'card-shimmer-top card-accent card-accent-bar';
   } else if (variant === 'status' && statusColor) {
     variantStyle = {
-      background: `${statusColor}0D`, // 5% opacity via hex
+      background: `${statusColor}0D`,
       border: `1px solid ${statusColor}33`,
       borderLeft: `3px solid ${statusColor}`,
       padding: 'var(--space-5)',
@@ -344,7 +401,6 @@ export const Card = ({
     };
     variantClass = '';
   } else {
-    // standard
     variantStyle = {
       background: 'var(--bg-card)',
       border: '1px solid var(--border-subtle)',
@@ -354,55 +410,90 @@ export const Card = ({
     variantClass = 'card-shimmer-top';
   }
 
-  const hoverStyle = hover && !glass ? {
-    '--hover-border': variant === 'accent' ? 'var(--accent-blue)' : 'var(--border-default)',
-  } : {};
-
   return (
     <div
       role={roleProp}
       aria-label={ariaLabel}
       className={`${variantClass} ${hover && !glass ? 'hover:scale-[1.002]' : ''} ${className}`}
-      style={{ ...baseStyle, ...variantStyle, ...hoverStyle, ...extraStyle }}
+      style={{ ...baseStyle, ...variantStyle, ...extraStyle }}
       {...props}
     >
       {children}
     </div>
   );
+});
+
+Card.propTypes = {
+  children:    PropTypes.node,
+  variant:     PropTypes.oneOf(['standard', 'accent', 'status', 'glass']),
+  statusColor: PropTypes.string,
+  glass:       PropTypes.bool,
+  hover:       PropTypes.bool,
+  className:   PropTypes.string,
+  role:        PropTypes.string,
+  'aria-label': PropTypes.string,
+  style:       PropTypes.object,
+};
+Card.defaultProps = {
+  children:    null,
+  variant:     'standard',
+  statusColor: null,
+  glass:       false,
+  hover:       true,
+  className:   '',
+  role:        'region',
+  'aria-label': undefined,
+  style:       undefined,
 };
 
 /* ============================================================
    FILTER CHIP — for category filtering
    ============================================================ */
-export const FilterChip = ({ label, icon, selected, onClick, className = '' }) => (
-  <button
-    onClick={onClick}
-    type="button"
-    className={`inline-flex items-center gap-1.5 shrink-0 transition-all duration-150 focus-ring ${className}`}
-    style={{
-      background: selected ? 'var(--accent-blue-dim)' : 'var(--bg-elevated)',
-      border: selected ? '1px solid var(--accent-blue)' : '1px solid var(--border-default)',
-      borderRadius: 'var(--chip-radius)',
-      padding: '6px 14px',
-      fontFamily: 'var(--font-body)',
-      fontSize: '12px',
-      fontWeight: 600,
-      color: selected ? 'var(--accent-blue-bright)' : 'var(--text-secondary)',
-      cursor: 'pointer',
-    }}
-    aria-pressed={selected}
-  >
-    {selected && icon && (
-      <span className="material-symbols-rounded" style={{ fontSize: '14px' }} aria-hidden="true">{icon}</span>
-    )}
-    {label}
-  </button>
-);
+export const FilterChip = memo(function FilterChip({ label, icon, selected, onClick, className }) {
+  return (
+    <button
+      onClick={onClick}
+      type="button"
+      className={`inline-flex items-center gap-1.5 shrink-0 transition-all duration-150 focus-ring ${className}`}
+      style={{
+        background: selected ? 'var(--accent-blue-dim)' : 'var(--bg-elevated)',
+        border: selected ? '1px solid var(--accent-blue)' : '1px solid var(--border-default)',
+        borderRadius: 'var(--chip-radius)',
+        padding: '6px 14px',
+        fontFamily: 'var(--font-body)',
+        fontSize: '12px',
+        fontWeight: 600,
+        color: selected ? 'var(--accent-blue-bright)' : 'var(--text-secondary)',
+        cursor: 'pointer',
+      }}
+      aria-pressed={selected}
+    >
+      {selected && icon && (
+        <span className="material-symbols-rounded" style={{ fontSize: '14px' }} aria-hidden="true">{icon}</span>
+      )}
+      {label}
+    </button>
+  );
+});
+
+FilterChip.propTypes = {
+  label:     PropTypes.string.isRequired,
+  icon:      PropTypes.string,
+  selected:  PropTypes.bool,
+  onClick:   PropTypes.func,
+  className: PropTypes.string,
+};
+FilterChip.defaultProps = {
+  icon:      null,
+  selected:  false,
+  onClick:   undefined,
+  className: '',
+};
 
 /* ============================================================
    QUICK ACTION CHIP — for chatbot prompt chips
    ============================================================ */
-export const QuickActionChip = ({ label, onClick, className = '' }) => {
+export const QuickActionChip = memo(function QuickActionChip({ label, onClick, className }) {
   const [hovered, setHovered] = React.useState(false);
   return (
     <button
@@ -440,112 +531,154 @@ export const QuickActionChip = ({ label, onClick, className = '' }) => {
       </span>
     </button>
   );
+});
+
+QuickActionChip.propTypes = {
+  label:     PropTypes.string.isRequired,
+  onClick:   PropTypes.func,
+  className: PropTypes.string,
+};
+QuickActionChip.defaultProps = {
+  onClick:   undefined,
+  className: '',
 };
 
 /* ============================================================
    SKELETON LOADER
    ============================================================ */
-export const SkeletonLoader = ({ className = '', style = {} }) => (
-  <div
-    className={`skeleton-premium ${className}`}
-    aria-hidden="true"
-    role="presentation"
-    style={style}
-  />
-);
+export const SkeletonLoader = memo(function SkeletonLoader({ className, style }) {
+  return (
+    <div
+      className={`skeleton-premium ${className}`}
+      aria-hidden="true"
+      role="presentation"
+      style={style}
+    />
+  );
+});
+
+SkeletonLoader.propTypes = {
+  className: PropTypes.string,
+  style:     PropTypes.object,
+};
+SkeletonLoader.defaultProps = {
+  className: '',
+  style:     {},
+};
 
 /* ============================================================
    SKELETON CARD — gate card shape
    ============================================================ */
-export const SkeletonGateCard = () => (
-  <div
-    className="skeleton-premium"
-    style={{
-      borderRadius: 'var(--card-radius)',
-      height: '240px',
-      width: '100%',
-    }}
-    aria-hidden="true"
-  />
-);
+export const SkeletonGateCard = memo(function SkeletonGateCard() {
+  return (
+    <div
+      className="skeleton-premium"
+      style={{
+        borderRadius: 'var(--card-radius)',
+        height: '240px',
+        width: '100%',
+      }}
+      aria-hidden="true"
+      role="presentation"
+    />
+  );
+});
 
 /* ============================================================
    SKELETON ROUTE CARD
    ============================================================ */
-export const SkeletonRouteCard = () => (
-  <div
-    style={{
-      borderRadius: 'var(--card-radius)',
-      background: 'var(--bg-card)',
-      border: '1px solid var(--border-subtle)',
-      padding: 'var(--space-5)',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '16px',
-    }}
-    aria-hidden="true"
-  >
-    <SkeletonLoader style={{ height: '16px', width: '40%', borderRadius: '4px' }} />
-    <SkeletonLoader style={{ height: '60px', borderRadius: '8px' }} />
-    <SkeletonLoader style={{ height: '14px', width: '70%', borderRadius: '4px' }} />
-  </div>
-);
+export const SkeletonRouteCard = memo(function SkeletonRouteCard() {
+  return (
+    <div
+      style={{
+        borderRadius: 'var(--card-radius)',
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border-subtle)',
+        padding: 'var(--space-5)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px',
+      }}
+      aria-hidden="true"
+      role="presentation"
+    >
+      <SkeletonLoader style={{ height: '16px', width: '40%', borderRadius: '4px' }} />
+      <SkeletonLoader style={{ height: '60px', borderRadius: '8px' }} />
+      <SkeletonLoader style={{ height: '14px', width: '70%', borderRadius: '4px' }} />
+    </div>
+  );
+});
 
 /* ============================================================
    TOGGLE SWITCH — premium toggle, not a checkbox
    ============================================================ */
-export const Toggle = ({ checked, onChange, label, description, id }) => (
-  <div
-    onClick={onChange}
-    role="switch"
-    aria-checked={checked}
-    aria-label={label}
-    id={id}
-    tabIndex={0}
-    onKeyDown={e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); onChange(); } }}
-    className="flex items-center justify-between cursor-pointer focus-ring"
-    style={{
-      padding: 'var(--space-4)',
-      borderRadius: 'var(--card-radius-sm)',
-      border: `1px solid ${checked ? 'var(--border-emphasis)' : 'var(--border-subtle)'}`,
-      background: checked ? 'var(--accent-blue-dim)' : 'var(--bg-elevated)',
-      transition: 'all 200ms ease',
-    }}
-  >
-    <div>
-      <div style={{ fontFamily: 'var(--font-body)', fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
-        {label}
-      </div>
-      {description && (
-        <div style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
-          {description}
-        </div>
-      )}
-    </div>
+export const Toggle = memo(function Toggle({ checked, onChange, label, description, id }) {
+  return (
     <div
+      onClick={onChange}
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      id={id}
+      tabIndex={0}
+      onKeyDown={e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); onChange(); } }}
+      className="flex items-center justify-between cursor-pointer focus-ring"
       style={{
-        width: '36px',
-        height: '20px',
-        borderRadius: '10px',
-        background: checked ? 'var(--accent-blue)' : 'var(--border-default)',
-        display: 'flex',
-        alignItems: 'center',
-        padding: '2px',
-        transition: 'background 200ms ease',
-        flexShrink: 0,
+        padding: 'var(--space-4)',
+        borderRadius: 'var(--card-radius-sm)',
+        border: `1px solid ${checked ? 'var(--border-emphasis)' : 'var(--border-subtle)'}`,
+        background: checked ? 'var(--accent-blue-dim)' : 'var(--bg-elevated)',
+        transition: 'all 200ms ease',
       }}
     >
+      <div>
+        <div style={{ fontFamily: 'var(--font-body)', fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
+          {label}
+        </div>
+        {description && (
+          <div style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+            {description}
+          </div>
+        )}
+      </div>
       <div
         style={{
-          width: '16px',
-          height: '16px',
-          borderRadius: '50%',
-          background: '#ffffff',
-          transform: checked ? 'translateX(16px)' : 'translateX(0)',
-          transition: 'transform 200ms ease',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+          width: '36px',
+          height: '20px',
+          borderRadius: '10px',
+          background: checked ? 'var(--accent-blue)' : 'var(--border-default)',
+          display: 'flex',
+          alignItems: 'center',
+          padding: '2px',
+          transition: 'background 200ms ease',
+          flexShrink: 0,
         }}
-      />
+        aria-hidden="true"
+      >
+        <div
+          style={{
+            width: '16px',
+            height: '16px',
+            borderRadius: '50%',
+            background: '#ffffff',
+            transform: checked ? 'translateX(16px)' : 'translateX(0)',
+            transition: 'transform 200ms ease',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+          }}
+        />
+      </div>
     </div>
-  </div>
-);
+  );
+});
+
+Toggle.propTypes = {
+  checked:     PropTypes.bool.isRequired,
+  onChange:    PropTypes.func.isRequired,
+  label:       PropTypes.string.isRequired,
+  description: PropTypes.string,
+  id:          PropTypes.string,
+};
+Toggle.defaultProps = {
+  description: null,
+  id:          undefined,
+};

@@ -1,8 +1,11 @@
 import { useRef, useCallback, useEffect } from 'react';
 
 /**
- * use3DTilt — returns { ref, style } for perspective tilt on mouse movement.
- * @param {'standard'|'accent'|'organizer'} variant
+ * use3DTilt — attaches a 3D perspective tilt effect to a DOM element
+ * via mouse movement. Automatically disabled for users who prefer reduced motion.
+ *
+ * @param {'standard'|'accent'|'organizer'} [variant='standard'] - Tilt intensity preset
+ * @returns {{ ref: React.RefObject }} Ref to attach to the target element
  */
 const configs = {
   standard:  { maxTilt: 6,  perspective: 1000, scale: 1.02 },

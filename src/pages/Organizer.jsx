@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { geminiMetrics } from '../services/gemini';
 import { useVenue } from '../contexts/VenueContext';
 import { useSimulation } from '../hooks/useSimulation';
 import { Card, StatusBadge, Button, AIBadge, CongestionMeter } from '../components/ui';
@@ -167,6 +168,7 @@ export const Organizer = () => {
   const { venueState, dispatch } = useVenue();
   const { triggerSpike, triggerHalftimeRushCascade } = useSimulation();
   const [trendHistory, setTrendHistory] = useState({});
+  const [metricsSnapshot, setMetricsSnapshot] = useState(geminiMetrics.getSummary());
   const maxHistoryLength = 20;
 
   useEffect(() => {
@@ -185,6 +187,13 @@ export const Organizer = () => {
       return next;
     });
   }, [venueState]);
+
+  // Refresh AI metrics every 10 seconds
+  useEffect(() => {
+    setMetricsSnapshot(geminiMetrics.getSummary());
+    const id = setInterval(() => setMetricsSnapshot(geminiMetrics.getSummary()), 10000);
+    return () => clearInterval(id);
+  }, []);
 
   const handleApproveAdvisory = (rec) => {
     dispatch({ type: 'ADD_ADVISORY', payload: { id: Date.now(), message: rec.advisoryText, targetZone: rec.zone, sentAt: Date.now() } });
@@ -672,6 +681,42 @@ export const Organizer = () => {
               )}
             </div>
           </div>
+
+          {/* AI Performance Metrics Card */}
+          <Card
+            role="region"
+            aria-label="Gemini AI performance metrics"
+            style={{ marginTop: '20px' }}
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <span className="material-symbols-rounded" style={{ fontSize: '18px', color: 'var(--accent-blue)' }} aria-hidden="true">analytics</span>
+              <h3 style={{
+                fontFamily: 'var(--font-display)', fontSize: '15px', fontWeight: 600,
+                color: 'var(--text-primary)', margin: 0,
+              }}>
+                AI Performance
+              </h3>
+              <AIBadge className="ml-auto" />
+            </div>
+            <span style={{
+              fontFamily: 'var(--font-body)', fontSize: '10px', fontWeight: 700,
+              textTransform: 'uppercase', letterSpacing: 'var(--tracking-widest)',
+              color: 'var(--text-muted)', display: 'block', marginBottom: '12px',
+            }}>GEMINI METRICS</span>
+            <div className="flex flex-col gap-3">
+              {[
+                { label: 'Total Calls',      value: metricsSnapshot.totalCalls },
+                { label: 'Cache Hit Rate',   value: metricsSnapshot.cacheHitRate },
+                { label: 'Error Rate',       value: metricsSnapshot.errorRate },
+                { label: 'Avg Response',     value: metricsSnapshot.averageResponseMs > 0 ? `${metricsSnapshot.averageResponseMs}ms` : '—' },
+              ].map(({ label, value }) => (
+                <div key={label} className="flex items-center justify-between">
+                  <span style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--text-secondary)' }}>{label}</span>
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{value}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
         </div>
       </div>
 

@@ -249,6 +249,29 @@
     clip: rect(0,0,0,0); white-space: nowrap; border: 0;
   }
 
+  /* Skip-to-content navigation link — accessible keyboard shortcut */
+  .skip-nav {
+    position: absolute;
+    top: -100%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    padding: 12px 24px;
+    background: var(--accent-blue);
+    color: #ffffff;
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 0 0 var(--card-radius-sm) var(--card-radius-sm);
+    text-decoration: none;
+    transition: top 0.2s ease;
+  }
+  .skip-nav:focus {
+    top: 0;
+    outline: 2.5px solid #ffffff;
+    outline-offset: 2px;
+  }
+
   /* Glass panel */
   .glass-panel {
     background: rgba(20,30,48,0.75);

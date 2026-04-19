@@ -23,11 +23,25 @@ Built for the **Google Gemini hackathon**, StadiumFlow AI gives attendees real-t
 - **Scenario Simulation** — Trigger real-time simulation events: Gate Rush, Halftime Food Rush, Corridor Spike, Exit Surge
 
 ### Design & Accessibility
-- **Premium dark UI** — Glassmorphism cards, animated heatmaps, micro-interactions
-- **High-contrast mode** — WCAG 2.1 AA compliant; togglable in navigation and onboarding
-- **Large text mode** — Scales all typography proportionally without breaking layouts
-- **Keyboard navigable** — Every interactive element is Tab-reachable with visible focus rings
-- **Reduced-motion support** — All animations respect `prefers-reduced-motion`
+- **WCAG 2.1 AA Compliant** — High-contrast mode togglable globally, readable sans-serif typography, and distinct focus rings (`:focus-visible`).
+- **Semantic HTML & ARIA** — Full screen-reader support via `aria-live` alert regions, `progressbar` roles, and `.sr-only` context tags.
+- **Motion Safety** — Strict adherence to `prefers-reduced-motion` safety nets. Disables all Three.js, Vanta, and Framer Motion animations when active.
+- **Large Text Mode** — Scales UI proportionally for low-vision users.
+
+---
+
+## Technical Excellence
+
+### Security Posture
+- **Input Sanitization**: All AI-generated output is processed through DOMPurify with strict HTML tag whitelisting before any rendering.
+- **GCP Secrets Management**: API keys strictly managed via `.env` files that are tightly scoped and ignored by version control.
+- **Nginx Security Headers**: Production infrastructure enforces strict Content-Security-Policy (CSP), Strict-Transport-Security (HSTS), X-Frame-Options, and nosniff policies.
+- **Gemini Guardrails**: Safety settings explicitly set to `BLOCK_MEDIUM_AND_ABOVE` for harassment, hate speech, and sexually explicit content.
+
+### Testing & Validation
+- **Unit Testing**: Comprehensive Vitest suite testing the recommendation engine's pure functions and the simulation's deterministic state updates.
+- **Mocking Strategy**: Full integration of `vi.mock` for external dependencies (GoogleGenerativeAI, DOMPurify, Three.js) to ensure perfectly isolated testing environments.
+- **Coverage**: Scripts included for `npm run test:run` and `npm run test:coverage` to ensure code stability.
 
 ---
 
@@ -36,13 +50,12 @@ Built for the **Google Gemini hackathon**, StadiumFlow AI gives attendees real-t
 | Layer | Technology |
 |---|---|
 | Framework | React 18 + Vite |
+| Build & Infra | Docker + Nginx + Cloud Run |
 | Styling | Tailwind CSS v3 + custom CSS tokens |
 | AI | Google Gemini 1.5 Flash (`@google/generative-ai`) |
+| Testing | Vitest + React Testing Library |
 | Icons | Google Material Symbols (Rounded) |
 | Fonts | Inter, Space Grotesk (Google Fonts) |
-| Animation | Framer Motion + CSS keyframes |
-| State | React Context API + useReducer |
-| Routing | React Router v6 |
 | Map | Custom hand-built SVG — no Leaflet, no Google Maps |
 
 ---
@@ -50,33 +63,34 @@ Built for the **Google Gemini hackathon**, StadiumFlow AI gives attendees real-t
 ## Getting Started
 
 ### Prerequisites
-- Node.js 18+
+- Node.js 18+ or Docker
 - A free [Google Gemini API key](https://aistudio.google.com/app/apikey)
 
-### Installation
+### Installation (Local)
 
 ```bash
 # Install dependencies
 npm install
 
 # Create environment file
-cp .env.example .env   # or create .env manually (see below)
+cp .env.example .env   # Add your Gemini API key
 
 # Start development server
 npm run dev
+
+# Run test suite
+npm run test:run
 ```
 
-### Environment Variables
+### Deployment (Docker / Cloud Run)
 
-Create a `.env` file in the project root:
+```bash
+# Build the production image multi-stage Dockerfile
+docker build -t stadiumflow-ai .
 
-```env
-VITE_GEMINI_API_KEY=your_gemini_api_key_here
+# Run the container (injects PORT automatically)
+docker run -p 8080:8080 -e PORT=8080 -e VITE_GEMINI_API_KEY=your_key stadiumflow-ai
 ```
-
-> ⚠️ Never commit your `.env` file. It is already listed in `.gitignore`.
-
-The API key is accessed exclusively through `src/services/gemini.js` — it is never referenced directly in any component.
 
 ---
 
@@ -86,61 +100,24 @@ The API key is accessed exclusively through `src/services/gemini.js` — it is n
 src/
 ├── components/
 │   ├── domain/         # Feature-specific components (ChatAssistant, StadiumMap, etc.)
-│   └── ui/             # Shared design system components (Button, Card, Badge, etc.)
-├── contexts/
-│   ├── VenueContext.jsx # Global venue state (gates, corridors, alerts, phases)
-│   └── UserContext.jsx  # User profile (seat, accessibility, preferences)
+│   ├── ui/             # Shared design system (Button, Card, CongestionMeter, etc.)
+│   └── __tests__/      # Component-level tests
+├── contexts/           # Global states (VenueContext, UserContext)
 ├── hooks/
 │   ├── useSimulation.js # Simulation engine (phase timer, noise, spike events)
-│   └── use3DTilt.js     # 3D card tilt interaction hook
-├── layouts/
-│   ├── AttendeeLayout.jsx
-│   └── OrganizerLayout.jsx
-├── pages/
-│   ├── Landing.jsx
-│   ├── SelectRole.jsx
-│   ├── Onboarding.jsx
-│   ├── Dashboard.jsx
-│   ├── NavigateView.jsx
-│   ├── FacilitiesView.jsx
-│   ├── ExitGuidance.jsx
-│   └── Organizer.jsx
+│   └── __tests__/      # State transition unit tests
 ├── services/
-│   └── gemini.js        # All Gemini API calls centralized here
-└── utils/
-    └── recommendationEngine.js  # Pure function: computes personalized recommendations
+│   └── gemini.js        # LRU cached, Rate-limited Gemini API integration
+├── utils/
+│   └── recommendationEngine.js  # Pure functions for personalized suggestions
+└── test/
+    └── setup.js        # Vitest global definitions and mocks
 ```
-
----
-
-## Routes
-
-| Path | Page |
-|---|---|
-| `/` | Marketing landing page |
-| `/select-role` | Role selection (Attendee / Organizer) |
-| `/onboarding` | 4-step attendee onboarding |
-| `/dashboard` | Attendee matchday dashboard |
-| `/navigate` | Stadium SVG map + route panel |
-| `/facilities` | Food stalls & washrooms assistant |
-| `/exit` | Exit guidance (post-match) |
-| `/organizer` | Organizer control center |
-
----
-
-## Demo Controls
-
-A **Demo Mode** panel is available in the bottom-right corner (click the lab flask icon in the footer or press `Ctrl+Shift+D`). It lets you:
-
-- Jump to any event phase instantly
-- Trigger individual simulation scenarios (Gate Rush, Halftime Rush, etc.)
-- Run a fully scripted **Auto Demo** sequence (ideal for live presentations)
-- Reset everything back to pre-match baseline
 
 ---
 
 ## Powered By
 
-- [Google Gemini API](https://ai.google.dev/) — AI intelligence layer
-- [Google Fonts](https://fonts.google.com/) — Inter, Space Grotesk
-- [Google Material Symbols](https://fonts.google.com/icons) — Icon system
+- [Google Cloud Run](https://cloud.google.com/run) — Serverless container hosting
+- [Google Gemini API](https://ai.google.dev/) — Stateful match intelligence
+- [Vanta.js](https://www.vantajs.com/) — Interactive 3D background elements

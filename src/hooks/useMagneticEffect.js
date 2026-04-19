@@ -1,9 +1,12 @@
 import { useRef, useEffect, useState } from 'react';
 
 /**
- * useMagneticEffect — pulls a button toward the cursor when within 80px.
- * No-op on touch devices.
- * Returns { ref, magneticStyle, glowOpacity }
+ * useMagneticEffect — creates a magnetic pull effect that attracts the element
+ * toward the cursor when it enters within the specified radius.
+ * Automatically disabled on touch devices and for users who prefer reduced motion.
+ *
+ * @param {number} [radius=80] - Distance in pixels within which the magnetic pull activates
+ * @returns {{ ref: React.RefObject, magneticStyle: Object, glowOpacity: number }}
  */
 export function useMagneticEffect(radius = 80) {
   const ref = useRef(null);

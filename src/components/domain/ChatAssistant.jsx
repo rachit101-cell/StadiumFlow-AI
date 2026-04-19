@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useVenue } from '../../contexts/VenueContext';
 import { useUser } from '../../contexts/UserContext';
-import { getGeminiResponse } from '../../services/gemini';
+import { getGeminiResponse, streamGeminiResponse } from '../../services/gemini';
 import { useMagneticEffect } from '../../hooks/useMagneticEffect';
 import { AIBadge, QuickActionChip } from '../ui';
 
@@ -254,14 +254,52 @@ export const ChatAssistant = () => {
 
   const handleSend = async (text) => {
     if (!text.trim()) return;
-    setMessages(prev => [...prev, { id: Date.now(), role: 'user', text }]);
+    const userMessageId = Date.now();
+    const assistantMessageId = userMessageId + 1;
+
+    setMessages(prev => [...prev, { id: userMessageId, role: 'user', text }]);
     setInputText('');
     setIsTyping(true);
-    const { text: aiText, isCached, isErrorFallback } = await getGeminiResponse(
-      text, userProfile.role, venueState, userProfile
-    );
-    setMessages(prev => [...prev, { id: Date.now() + 1, role: 'assistant', text: aiText, isCached, isErrorFallback }]);
-    setIsTyping(false);
+
+    // Add empty assistant message placeholder for streaming
+    setMessages(prev => [...prev, { id: assistantMessageId, role: 'assistant', text: '', isCached: false, isErrorFallback: false, isStreaming: true }]);
+
+    try {
+      let isFirstChunk = true;
+      for await (const chunkData of streamGeminiResponse(text, userProfile.role, venueState, userProfile)) {
+        if (isFirstChunk) {
+          setIsTyping(false);
+          isFirstChunk = false;
+        }
+        setMessages(prev => prev.map(m => {
+          if (m.id === assistantMessageId) {
+             // Handle structured string updates by appending to existing text
+             return {
+               ...m,
+               text: m.text + chunkData.chunk,
+               isCached: chunkData.isCached || false,
+               isErrorFallback: chunkData.isErrorFallback || false,
+             };
+          }
+          return m;
+        }));
+      }
+    } catch (e) {
+      setIsTyping(false);
+      setMessages(prev => prev.map(m => {
+        if (m.id === assistantMessageId) {
+          return {
+            ...m,
+            text: 'Communication array unavailable. Please check the dashboard manually or locate a staff member.',
+            isErrorFallback: true,
+          };
+        }
+        return m;
+      }));
+    } finally {
+      setIsTyping(false);
+      setMessages(prev => prev.map(m => m.id === assistantMessageId ? { ...m, isStreaming: false } : m));
+    }
   };
 
   const modeLabel = isOrganizer ? 'ORGANIZER' : 'ATTENDEE';
@@ -523,6 +561,7 @@ export const ChatAssistant = () => {
                       </div>
                     ) : (
                       <div
+                        className={m.isStreaming ? "ai-glow" : ""}
                         style={{
                           background: m.isErrorFallback ? 'rgba(239,68,68,0.06)' : 'var(--bg-elevated)',
                           border: m.isErrorFallback ? '1px solid rgba(239,68,68,0.25)' : '1px solid var(--border-subtle)',

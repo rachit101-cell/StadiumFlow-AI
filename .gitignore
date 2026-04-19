@@ -22,6 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-.env 
-.env 
+
+# Environment files — never commit these
 .env
+.env.local
+.env.production
+.env.development
+*.env

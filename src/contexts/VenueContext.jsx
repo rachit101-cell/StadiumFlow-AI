@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 
 const VenueContext = createContext();
@@ -130,15 +130,26 @@ function venueReducer(state, action) {
   }
 }
 
+/**
+ * VenueProvider — provides live venue state and dispatch to the component tree.
+ * Context value is memoized to prevent unnecessary re-renders in consumers.
+ *
+ * @param {{ children: React.ReactNode }} props
+ */
 export const VenueProvider = ({ children }) => {
   const [venueState, dispatch] = useReducer(venueReducer, INITIAL_VENUE_STATE);
 
   const dispatchAction = useCallback((action) => {
-      dispatch(action);
+    dispatch(action);
   }, []);
 
+  const contextValue = useMemo(
+    () => ({ venueState, dispatch: dispatchAction }),
+    [venueState, dispatchAction]
+  );
+
   return (
-    <VenueContext.Provider value={{ venueState, dispatch: dispatchAction }}>
+    <VenueContext.Provider value={contextValue}>
       {children}
     </VenueContext.Provider>
   );
