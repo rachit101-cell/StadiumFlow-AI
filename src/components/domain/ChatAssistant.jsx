@@ -524,22 +524,34 @@ export const ChatAssistant = () => {
                     ) : (
                       <div
                         style={{
-                          background: 'var(--bg-elevated)',
-                          border: '1px solid var(--border-subtle)',
+                          background: m.isErrorFallback ? 'rgba(239,68,68,0.06)' : 'var(--bg-elevated)',
+                          border: m.isErrorFallback ? '1px solid rgba(239,68,68,0.25)' : '1px solid var(--border-subtle)',
                           borderRadius: '4px 16px 16px 16px',
                           overflow: 'hidden',
                           position: 'relative',
                         }}
                       >
-                        {/* AI badge top-right */}
-                        <div style={{ position: 'absolute', top: '8px', right: '10px', zIndex: 1 }}>
-                          <AIBadge />
-                        </div>
-                        {isOrganizer
-                          ? <OrganizerMessageCard parts={parseOrganizerResponse(m.text)} />
-                          : <AttendeeMessageCard parts={parseAttendeeResponse(m.text)} />
-                        }
-                        {m.isCached && (
+                        {/* Error fallback — plain warning message */}
+                        {m.isErrorFallback ? (
+                          <div style={{ padding: '12px 14px', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                            <span className="material-symbols-rounded" style={{ fontSize: '18px', color: 'var(--status-warning)', flexShrink: 0, marginTop: '1px' }} aria-hidden="true">warning</span>
+                            <p style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0, whiteSpace: 'pre-wrap' }}>
+                              {m.text}
+                            </p>
+                          </div>
+                        ) : (
+                          <>
+                            {/* AI badge top-right — only for real AI responses */}
+                            <div style={{ position: 'absolute', top: '8px', right: '10px', zIndex: 1 }}>
+                              <AIBadge />
+                            </div>
+                            {isOrganizer
+                              ? <OrganizerMessageCard parts={parseOrganizerResponse(m.text)} />
+                              : <AttendeeMessageCard parts={parseAttendeeResponse(m.text)} />
+                            }
+                          </>
+                        )}
+                        {m.isCached && !m.isErrorFallback && (
                           <div style={{ padding: '4px 14px 8px', fontFamily: 'var(--font-body)', fontSize: '10px', color: 'var(--text-muted)' }}>
                             ⚡ Cached response
                           </div>

@@ -3,8 +3,7 @@ import { useVenue } from '../contexts/VenueContext';
 import { useSimulation } from '../hooks/useSimulation';
 import { Card, StatusBadge, Button, AIBadge, CongestionMeter } from '../components/ui';
 import { AnimatedNumber } from '../components/ui/AnimatedNumber';
-import { ChatAssistant } from '../components/domain/ChatAssistant';
-import { HoloCard } from '../components/effects/HoloCard';
+
 import { motion, AnimatePresence } from 'framer-motion';
 
 /* ─── Helpers ─── */
@@ -703,6 +702,7 @@ export const Organizer = () => {
           <CongestionTrendChart historyData={trendHistory} />
         </div>
       </div>
+
     </div>
   );
 };

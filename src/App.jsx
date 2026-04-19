@@ -19,11 +19,11 @@ import { FacilitiesView } from './pages/FacilitiesView';
 import { ExitGuidance } from './pages/ExitGuidance';
 import { Organizer } from './pages/Organizer';
 
-/* Cinematic transition variants */
+/* Cinematic transition variants — no CSS filter; filter breaks position:fixed children */
 const cinematicVariants = {
-  initial: { opacity: 0, y: 12, filter: 'blur(4px)' },
-  animate: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.28, ease: [0.32, 0.72, 0, 1] } },
-  exit:    { opacity: 0, y: -8, filter: 'blur(2px)', transition: { duration: 0.18, ease: 'easeIn' } },
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.28, ease: [0.32, 0.72, 0, 1] } },
+  exit:    { opacity: 0, y: -8, transition: { duration: 0.18, ease: 'easeIn' } },
 };
 const instantVariants = {
   initial: {}, animate: {}, exit: {},
