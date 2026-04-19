@@ -619,24 +619,113 @@
 .ai-glow { box-shadow: 0 0 20px 4px rgba(59,130,246,0.25); }
 
 /* ============================================================
+   NOT SR-ONLY — reverses screen-reader-only hidden state
+   ============================================================ */
+.not-sr-only {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: 0;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* ============================================================
+   GLOBAL FOCUS VISIBLE SYSTEM
+   ============================================================ */
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2.5px solid var(--accent-blue, #3B82F6);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* High contrast mode focus */
+.high-contrast :focus-visible {
+  outline: 3px solid #FFFF00;
+  outline-offset: 3px;
+}
+
+/* ============================================================
    REDUCED MOTION SAFETY NET
    ============================================================ */
 @media (prefers-reduced-motion: reduce) {
-  *, ::before, ::after {
-    animation-duration: 0.01ms !important;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
+
+  .skeleton-premium,
+  .skeleton-beam,
+  .skeleton {
+    animation: none !important;
+    background: var(--bg-elevated, #141E30) !important;
+  }
+
+  .zone-high,
+  .zone-critical,
+  .zone-breathe-high,
+  .zone-breathe-critical {
+    animation: none !important;
+    opacity: 0.25 !important;
+    filter: none !important;
+  }
+
+  .route-path {
+    animation: none !important;
+    stroke-dashoffset: 0 !important;
+    opacity: 1 !important;
+  }
+
+  .btn-emergency,
+  .sos-attention {
+    animation: none !important;
+    box-shadow: 0 0 0 2px var(--status-danger, #EF4444) !important;
+  }
+
+  .hero-orb-1,
+  .hero-orb-2,
+  .hero-orb-3 {
+    display: none !important;
+  }
+
+  .alert-chip-enter,
+  .alert-critical,
+  .alert-3d-enter,
+  .alert-3d-exit {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .page-progress-bar {
+    display: none !important;
+  }
+
+  .holo-card::after {
+    display: none !important;
+  }
+
+  .stadium-map-container:hover .stadium-map-svg {
+    transform: none !important;
+  }
+
   .hero-orb { display: none !important; }
   .tilt-wrapper { transform: none !important; }
-  .holo-card::after { display: none !important; }
-  .skeleton-premium { animation: none !important; background: var(--bg-elevated); }
   .btn-primary:hover { transform: none !important; }
   .btn-emergency, .btn-danger-pulse, .chat-dock-ring { animation: none !important; }
   .zone-breathe-critical, .zone-high { animation: none !important; }
   .gate-ripple-circle { animation: none !important; }
-  .page-progress-bar { animation: none !important; transform: scaleX(1) !important; }
+  .page-progress-bar { display: none !important; }
   .animate-pulse-live { animation: none !important; }
   .congestion-bar-fill-critical, .congestion-bar-fill-high { animation: none !important; }
 }

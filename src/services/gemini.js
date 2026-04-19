@@ -1,69 +1,97 @@
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 import DOMPurify from 'dompurify';
 import { getRecommendations } from '../utils/recommendationEngine';
-import { SIMULATION, PHASES } from '../constants/venue';
+import { SIMULATION, PHASES, GEMINI as GEMINI_CONFIG } from '../constants/venue';
 
 // ─── API Key Guard ────────────────────────────────────────────────────────────
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+/** @type {boolean} Whether a valid API key is available at runtime */
+const hasValidKey = Boolean(
+  API_KEY &&
+  API_KEY !== 'your_gemini_api_key_here' &&
+  API_KEY.length > 10
+);
 
-if (!API_KEY || API_KEY === 'your_gemini_api_key_here' || API_KEY.length <= 10) {
-  console.error(
-    'VITE_GEMINI_API_KEY is not set. ' +
-    'Create a .env file with your Gemini API key. ' +
-    'See .env.example for the required format.'
+if (!API_KEY || !hasValidKey) {
+  // In development/test, warn but don't throw — the streamGeminiResponse
+  // function returns a safe error message when hasValidKey is false.
+  // In production with a real CI/CD pipeline, enforce this at deploy time.
+  console.warn(
+    '[StadiumFlow AI] VITE_GEMINI_API_KEY is not configured. ' +
+    'Copy .env.example to .env and add your Gemini API key. ' +
+    'AI features will be in mock mode until the key is provided.'
   );
 }
 
-const hasValidKey = Boolean(API_KEY && API_KEY !== 'your_gemini_api_key_here' && API_KEY.length > 10);
-
 // ─── Gemini Generation Config ─────────────────────────────────────────────────
 const generationConfig = {
-  temperature: 0.4,
-  topK: 32,
-  topP: 0.85,
-  maxOutputTokens: 256,
+  temperature:     GEMINI_CONFIG.TEMPERATURE,
+  topK:            GEMINI_CONFIG.TOP_K,
+  topP:            GEMINI_CONFIG.TOP_P,
+  maxOutputTokens: GEMINI_CONFIG.MAX_OUTPUT_TOKENS,
 };
 
 const safetySettings = [
-  { category: HarmCategory.HARM_CATEGORY_HARASSMENT,    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
-  { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,   threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+  { category: HarmCategory.HARM_CATEGORY_HARASSMENT,        threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+  { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,       threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
   { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
   { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
 ];
 
 const genAI = hasValidKey ? new GoogleGenerativeAI(API_KEY) : null;
 const model = hasValidKey
-  ? genAI.getGenerativeModel({ model: 'gemini-2.0-flash', generationConfig, safetySettings })
+  ? genAI.getGenerativeModel({ model: GEMINI_CONFIG.MODEL, generationConfig, safetySettings })
   : null;
 
 // ─── Gemini Usage Metrics ─────────────────────────────────────────────────────
 /**
- * Tracks Gemini API usage metrics for the AI Performance dashboard card.
+ * Runtime metrics tracker for Gemini API usage.
+ * Provides visibility into call volume, cache efficiency, and performance.
  */
 export const geminiMetrics = {
-  totalCalls: 0,
-  cacheHits: 0,
-  errors: 0,
+  totalCalls:    0,
+  cacheHits:     0,
+  errors:        0,
+  /** @type {number[]} */
   responseTimes: [],
 
   /**
-   * Records an API call result for metrics tracking.
-   * @param {number} durationMs - Response time in ms
-   * @param {boolean} fromCache - Whether this was a cache hit
-   * @param {boolean} isError - Whether this call errored
+   * Records the result of a Gemini API interaction.
+   *
+   * @description Increments call counters and appends response time to the rolling window.
+   * @param {{ durationMs: number, fromCache?: boolean, isError?: boolean }} params
+   * @param {number}  params.durationMs - Response time in milliseconds
+   * @param {boolean} [params.fromCache] - Whether response came from cache
+   * @param {boolean} [params.isError]   - Whether the call resulted in an error
+   * @returns {void}
    */
-  recordCall(durationMs, fromCache = false, isError = false) {
+  record({ durationMs, fromCache = false, isError = false }) {
     this.totalCalls++;
     if (fromCache) this.cacheHits++;
     if (isError) this.errors++;
     if (!fromCache && !isError && durationMs > 0) {
       this.responseTimes.push(durationMs);
+      if (this.responseTimes.length > 100) this.responseTimes.shift();
     }
   },
 
   /**
-   * Returns a formatted summary of Gemini usage metrics.
-   * @returns {{ totalCalls: number, cacheHitRate: string, errorRate: string, averageResponseMs: number }}
+   * Records an API call result for metrics tracking.
+   * @description Backward-compatible alias for `record()` — delegates directly.
+   * @param {number}  durationMs - Response time in ms
+   * @param {boolean} fromCache  - Whether this was a cache hit
+   * @param {boolean} isError    - Whether this call errored
+   * @returns {void}
+   */
+  recordCall(durationMs, fromCache = false, isError = false) {
+    this.record({ durationMs, fromCache, isError });
+  },
+
+  /**
+   * Returns a summary of all tracked metrics.
+   *
+   * @description Computes cache hit rate, error rate, and average response time.
+   * @returns {{ totalCalls: number, cacheHitRate: string, errorRate: string, avgResponseMs: number, averageResponseMs: number }}
    */
   getSummary() {
     const avg = this.responseTimes.length > 0
@@ -77,28 +105,58 @@ export const geminiMetrics = {
       errorRate: this.totalCalls > 0
         ? `${Math.round((this.errors / this.totalCalls) * 100)}%`
         : '0%',
-      averageResponseMs: avg,
+      avgResponseMs:     avg,
+      averageResponseMs: avg, // backward-compat alias
     };
+  },
+
+  /**
+   * Resets all metrics — used in testing.
+   * @returns {void}
+   */
+  reset() {
+    this.totalCalls    = 0;
+    this.cacheHits     = 0;
+    this.errors        = 0;
+    this.responseTimes = [];
   },
 };
 
 // ─── Rate Limiter ─────────────────────────────────────────────────────────────
-const rateLimiter = {
+/**
+ * Client-side rate limiter for Gemini API calls.
+ * Prevents accidental rapid-fire requests and enforces a maximum of
+ * SIMULATION.RATE_LIMIT_MAX_CALLS calls per SIMULATION.RATE_LIMIT_WINDOW_MS rolling window.
+ */
+export const rateLimiter = {
+  /** @type {number[]} */
   calls: [],
-  maxCalls: 10,
-  windowMs: 60000,
 
   /**
-   * Checks if a new API call is permitted under the rate limit.
-   * Allows a maximum of 10 calls per 60-second rolling window.
+   * Determines whether a new API call is permitted.
+   * Prunes expired timestamps before checking the window.
+   *
+   * @description Allows a maximum of 10 calls per 60-second rolling window.
    * @returns {boolean} True if call is permitted, false if rate limited
    */
   isAllowed() {
     const now = Date.now();
-    this.calls = this.calls.filter(t => now - t < this.windowMs);
-    if (this.calls.length >= this.maxCalls) return false;
+    this.calls = this.calls.filter(t => now - t < SIMULATION.RATE_LIMIT_WINDOW_MS);
+    if (this.calls.length >= SIMULATION.RATE_LIMIT_MAX_CALLS) return false;
     this.calls.push(now);
     return true;
+  },
+
+  /**
+   * Returns remaining calls available in the current window.
+   *
+   * @description Counts timestamps within the current rolling window.
+   * @returns {number} Number of remaining permitted calls
+   */
+  remaining() {
+    const now    = Date.now();
+    const active = this.calls.filter(t => now - t < SIMULATION.RATE_LIMIT_WINDOW_MS);
+    return Math.max(0, SIMULATION.RATE_LIMIT_MAX_CALLS - active.length);
   },
 };
 
@@ -107,6 +165,8 @@ const responseCache = new Map();
 
 /**
  * Generates a simple hash from a string for use as a cache key segment.
+ *
+ * @description Uses djb2-style bit operations to produce a compact base-36 hash.
  * @param {string} str - Input string
  * @returns {string} Base-36 hash string
  */
@@ -122,6 +182,8 @@ const simpleHash = (str) => {
 
 /**
  * Retrieves a cached Gemini response if it exists and has not expired.
+ *
+ * @description TTL is set by SIMULATION.CACHE_TTL_MS (45 s). Expired entries are deleted.
  * @param {string} cacheKey - The cache lookup key
  * @returns {string|null} Cached response text or null on miss/expiry
  */
@@ -137,8 +199,11 @@ export function getCachedResponse(cacheKey) {
 
 /**
  * Stores a response in the LRU cache, evicting the oldest entry if at capacity.
+ *
+ * @description Maximum capacity is SIMULATION.CACHE_MAX_SIZE (50 entries).
  * @param {string} cacheKey - The cache key
  * @param {string} response - The response text to cache
+ * @returns {void}
  */
 function setCache(cacheKey, response) {
   if (responseCache.size >= SIMULATION.CACHE_MAX_SIZE) {
@@ -150,44 +215,48 @@ function setCache(cacheKey, response) {
 
 // ─── Input Sanitization ───────────────────────────────────────────────────────
 /**
- * Sanitizes user input to prevent prompt injection attacks.
- * Strips characters and patterns that could manipulate the system prompt structure.
+ * Sanitizes user-supplied text to prevent prompt injection attacks.
+ * Removes structural characters that could manipulate the system prompt,
+ * truncates to a safe length, and strips common injection patterns.
  *
- * @param {string} input - Raw user input string
- * @returns {string} Sanitized input safe for inclusion in Gemini prompts
+ * @description Called on every user message before it is included in an AI prompt.
+ * @param {string} input - Raw user input from the chat interface
+ * @returns {string} Sanitized string safe for inclusion in AI prompts
  */
-function sanitizeUserInput(input) {
+export function sanitizeUserInput(input) {
   if (typeof input !== 'string') return '';
   return input
     .trim()
-    .slice(0, 500)
+    .slice(0, GEMINI_CONFIG.MAX_INPUT_LENGTH)
     .replace(/[<>]/g, '')
     .replace(/\{|\}/g, '')
-    .replace(/system:|assistant:|user:/gi, '')
-    .replace(/ignore previous instructions/gi, '')
+    .replace(/system\s*:/gi, '')
+    .replace(/assistant\s*:/gi, '')
+    .replace(/user\s*:/gi, '')
+    .replace(/ignore\s+(previous|all|above)\s+instructions?/gi, '')
     .replace(/\n{3,}/g, '\n\n');
 }
 
 // ─── Output Sanitization ──────────────────────────────────────────────────────
 /**
- * Sanitizes a Gemini API response string to prevent XSS.
- * All Gemini output is rendered as plain text via JSX — no HTML injection surface.
- * DOMPurify is applied as a defense-in-depth measure for any future dangerouslySetInnerHTML use.
+ * Sanitizes Gemini API response text before rendering in the DOM.
+ * Uses DOMPurify to strip any unexpected HTML while preserving
+ * safe formatting tags. Falls back to plain text if DOMPurify unavailable.
  *
- * @param {string} rawResponse - Raw response text from Gemini API
- * @returns {string} Sanitized response text safe for rendering
+ * @description Applied to every Gemini response before state is updated.
+ * @param {string} rawResponse - Raw text from Gemini API response
+ * @returns {string} Sanitized text safe for DOM rendering
  */
 export function sanitizeGeminiOutput(rawResponse) {
   if (typeof rawResponse !== 'string') return '';
-  // All Gemini output is rendered as plain text via JSX — no HTML injection surface.
-  // DOMPurify provides defense-in-depth if rendering approach changes in the future.
   if (typeof window !== 'undefined' && DOMPurify.isSupported) {
     return DOMPurify.sanitize(rawResponse, {
       ALLOWED_TAGS: ['b', 'strong', 'em', 'br'],
       ALLOWED_ATTR: [],
     });
   }
-  return rawResponse;
+  // Fallback: strip all HTML tags
+  return rawResponse.replace(/<[^>]*>/g, '');
 }
 
 // One pending request at a time to prevent rate-limit bursts
@@ -200,13 +269,15 @@ const HELP_RE     = /^(what\s*(to\s*do|can\s*(you|i|we)\s*do|are\s*(my\s*)?optio
 
 /**
  * Returns a contextual help menu response without calling the API.
- * @param {string} role - 'attendee' | 'organizer'
+ *
+ * @description Generates role-specific help text based on current match phase.
+ * @param {string} role       - 'attendee' | 'organizer'
  * @param {Object} venueState - Current venue state
  * @returns {string} Formatted help text
  */
 const getHelpReply = (role, venueState) => {
   const phase = venueState?.eventPhase?.replace(/-/g, ' ') || 'pre-match';
-  if (role === PHASES.ORGANIZER || role === 'organizer') {
+  if (role === 'organizer') {
     return `Here is what I can help you with during **${phase}** phase:\n\n🔴 **Zone monitoring** — Ask: "Highest risk zone now"\n👥 **Staff deployment** — Ask: "Where to deploy staff?"\n🚪 **Exit management** — Ask: "Which exit needs support?"\n🍔 **Queue management** — Ask: "Should I open another counter?"\n📢 **Advisories** — Ask: "What advisory to send?"\n\nOr describe any situation and I will advise accordingly.`;
   }
   return `Here is what I can help you with during **${phase}** phase:\n\n🚪 **Gate entry** — Ask: "Best gate for me"\n🗺 **Navigation** — Ask: "Route to my seat"\n🍔 **Food** — Ask: "Best food now"\n🚻 **Washrooms** — Ask: "Nearest washroom"\n🚶 **Timing** — Ask: "Should I leave now?"\n🏃 **Exit planning** — Ask: "Best exit after match"\n\nOr ask me anything — I know your section and the live venue conditions right now.`;
@@ -214,8 +285,10 @@ const getHelpReply = (role, venueState) => {
 
 /**
  * Returns a casual greeting response without calling the API.
- * @param {string} role - 'attendee' | 'organizer'
- * @param {Object} venueState - Current venue state
+ *
+ * @description Generates a friendly greeting personalized by name and event phase.
+ * @param {string} role        - 'attendee' | 'organizer'
+ * @param {Object} venueState  - Current venue state
  * @param {Object} userProfile - User profile
  * @returns {string} Formatted greeting text
  */
@@ -233,9 +306,11 @@ const getCasualReply = (role, venueState, userProfile) => {
 // ─── Local Quick-Action Resolvers ─────────────────────────────────────────────
 /**
  * Resolves attendee quick-action chip phrases to instant responses without API calls.
- * @param {string} normalized - Lowercased user message
- * @param {Object} recs - Result from getRecommendations
- * @param {Object} venueState - Current venue state
+ *
+ * @description Matches common attendee intent patterns and returns formatted responses.
+ * @param {string} normalized  - Lowercased user message
+ * @param {Object} recs        - Result from getRecommendations
+ * @param {Object} venueState  - Current venue state
  * @param {Object} userProfile - User profile
  * @returns {string|null} Response text or null if no local match
  */
@@ -267,7 +342,7 @@ const resolveLocalAttendee = (normalized, recs, venueState, userProfile) => {
     return `**Recommendation:** Use ${bestExit.label}\n**Why:** ${bestExit.reason}\n**Time Impact:** ~${bestExit.etaMinutes} min to reach exit\n**Backup Option:** ${bestExit.alternate ? `${bestExit.alternate} Exit` : 'Any less crowded exit'}`;
   }
   if (/congestion|crowd/.test(normalized)) {
-    const worstGate = Object.entries(venueState.gates).sort((a, b) => b[1].congestion - a[1].congestion)[0];
+    const worstGate    = Object.entries(venueState.gates).sort((a, b) => b[1].congestion - a[1].congestion)[0];
     const bestGateEntry = Object.entries(venueState.gates).sort((a, b) => a[1].congestion - b[1].congestion)[0];
     return `**Recommendation:** Avoid Gate ${worstGate[0]} (${worstGate[1].congestion}% congestion)\n**Why:** Gate ${bestGateEntry[0]} is the least congested entry point right now at ${bestGateEntry[1].congestion}%\n**Time Impact:** Using Gate ${bestGateEntry[0]} saves ~5 min over Gate ${worstGate[0]}\n**Backup Option:** Gate ${bestGate.id} is your personalized recommendation based on your section`;
   }
@@ -276,6 +351,8 @@ const resolveLocalAttendee = (normalized, recs, venueState, userProfile) => {
 
 /**
  * Resolves organizer quick-action chip phrases to instant responses without API calls.
+ *
+ * @description Matches common organizer operational intent patterns.
  * @param {string} normalized - Lowercased user message
  * @param {Object} venueState - Current venue state
  * @returns {string|null} Response text or null if no local match
@@ -313,7 +390,8 @@ const resolveLocalOrganizer = (normalized, venueState) => {
  * Builds the full system prompt context string for attendee queries.
  * Includes live venue state and personalized user data for context-aware responses.
  *
- * @param {Object} venueState - The current venue state from VenueContext
+ * @description Injects all relevant real-time data into the Gemini prompt for personalized guidance.
+ * @param {Object} venueState  - The current venue state from VenueContext
  * @param {Object} userProfile - The user profile from UserContext
  * @returns {string} Context string for injection into the Gemini prompt
  */
@@ -351,6 +429,7 @@ Respond with:
  * Builds the full system prompt context string for organizer queries.
  * Includes full venue-wide congestion, stall, exit, and alert summary.
  *
+ * @description Provides a complete operational picture for data-driven decision making.
  * @param {Object} venueState - The current venue state from VenueContext
  * @returns {string} Context string for injection into the Gemini prompt
  */
@@ -388,6 +467,7 @@ Respond with:
 // ─── System Instructions ──────────────────────────────────────────────────────
 const attendeeSystemInstruction = `
 You are StadiumFlow AI, a friendly real-time matchday assistant for stadium attendees.
+Powered by Google Gemini 1.5 Flash.
 
 IMPORTANT: Only use the structured format below for venue/navigation questions. For greetings, general questions, or anything unrelated to crowds/routes — respond naturally in plain conversational text.
 
@@ -396,6 +476,7 @@ Be helpful, warm, and concise.
 
 const organizerSystemInstruction = `
 You are StadiumFlow AI, a real-time operations assistant for venue organizers.
+Powered by Google Gemini 1.5 Flash.
 
 IMPORTANT: Only use the structured format below for operational/zone questions. For greetings or general inquiries — respond naturally in plain conversational text.
 
@@ -407,9 +488,11 @@ Be direct and professional.
  * Streams a Gemini response as an async generator, yielding chunks of data.
  * Fully integrates local resolvers, caching, and rate limiting.
  *
- * @param {string} promptText - Raw user message
- * @param {string} role - 'attendee' | 'organizer'
- * @param {Object} venueState - Current venue state from VenueContext
+ * @description Primary entry point for chat responses. Tries local resolvers,
+ * cache, and rate limiter before making an API call. Falls back gracefully on error.
+ * @param {string} promptText  - Raw user message
+ * @param {string} role        - 'attendee' | 'organizer'
+ * @param {Object} venueState  - Current venue state from VenueContext
  * @param {Object} userProfile - User profile from UserContext
  * @returns {AsyncGenerator<{ chunk: string, isCached?: boolean, isErrorFallback?: boolean, isLocal?: boolean }>}
  */
@@ -436,7 +519,7 @@ export async function* streamGeminiResponse(promptText, role, venueState, userPr
     : resolveLocalAttendee(normalized, recs, venueState, userProfile);
 
   if (localText) {
-    geminiMetrics.recordCall(0, true, false);
+    geminiMetrics.record({ durationMs: 0, fromCache: true });
     yield { chunk: sanitizeGeminiOutput(localText), isCached: false, isErrorFallback: false, isLocal: true };
     return;
   }
@@ -458,14 +541,14 @@ export async function* streamGeminiResponse(promptText, role, venueState, userPr
 
   const cached = getCachedResponse(cacheKey);
   if (cached) {
-    geminiMetrics.recordCall(0, true, false);
+    geminiMetrics.record({ durationMs: 0, fromCache: true });
     yield { chunk: cached, isCached: true, isErrorFallback: false };
     return;
   }
 
   // 6. Rate limit check
   if (!rateLimiter.isAllowed()) {
-    const fallback = localText || 'Rate limit reached. Please wait a moment and try again.';
+    const fallback = 'Rate limit reached. Please wait a moment and try again.';
     yield { chunk: sanitizeGeminiOutput(fallback), isCached: false, isErrorFallback: true };
     return;
   }
@@ -493,10 +576,10 @@ export async function* streamGeminiResponse(promptText, role, venueState, userPr
       yield { chunk: sanitizeGeminiOutput(chunkText), isCached: false, isErrorFallback: false };
     }
     setCache(cacheKey, sanitizeGeminiOutput(fullText));
-    geminiMetrics.recordCall(Date.now() - startTime, false, false);
+    geminiMetrics.record({ durationMs: Date.now() - startTime, fromCache: false });
   } catch (error) {
-    console.error('Gemini streaming error:', error);
-    geminiMetrics.recordCall(Date.now() - startTime, false, true);
+    console.error('[StadiumFlow AI] Gemini streaming error:', error);
+    geminiMetrics.record({ durationMs: Date.now() - startTime, isError: true });
     const msg = error?.message || '';
     const errorText = msg.includes('429') || msg.includes('quota')
       ? '⚠️ Gemini rate limit reached. Please wait a moment and try again.'
@@ -509,14 +592,15 @@ export async function* streamGeminiResponse(promptText, role, venueState, userPr
   }
 }
 
-// ─── Main Export ──────────────────────────────────────────────────────────────
+// ─── Main Export (non-streaming fallback) ─────────────────────────────────────
 /**
- * Main entry point for AI-assisted responses.
+ * Main entry point for AI-assisted responses (non-streaming).
  * Routes through local resolvers first (instant), then cache, then Gemini API.
  *
- * @param {string} promptText - Raw user message
- * @param {string} role - 'attendee' | 'organizer'
- * @param {Object} venueState - Current venue state from VenueContext
+ * @description Aggregates streaming output into a single resolved promise.
+ * @param {string} promptText  - Raw user message
+ * @param {string} role        - 'attendee' | 'organizer'
+ * @param {Object} venueState  - Current venue state from VenueContext
  * @param {Object} userProfile - User profile from UserContext
  * @returns {Promise<{ text: string, isCached: boolean, isErrorFallback: boolean, isLocal?: boolean }>}
  */
@@ -541,7 +625,7 @@ export const getGeminiResponse = async (promptText, role, venueState, userProfil
     : resolveLocalAttendee(normalized, recs, venueState, userProfile);
 
   if (localText) {
-    geminiMetrics.recordCall(0, true, false);
+    geminiMetrics.record({ durationMs: 0, fromCache: true });
     return { text: sanitizeGeminiOutput(localText), isCached: false, isErrorFallback: false, isLocal: true };
   }
 
@@ -561,13 +645,13 @@ export const getGeminiResponse = async (promptText, role, venueState, userProfil
 
   const cached = getCachedResponse(cacheKey);
   if (cached) {
-    geminiMetrics.recordCall(0, true, false);
+    geminiMetrics.record({ durationMs: 0, fromCache: true });
     return { text: cached, isCached: true, isErrorFallback: false };
   }
 
   // 6. Rate limit check
   if (!rateLimiter.isAllowed()) {
-    const fallback = localText || 'Rate limit reached. Please wait a moment and try again.';
+    const fallback = 'Rate limit reached. Please wait a moment and try again.';
     return { text: sanitizeGeminiOutput(fallback), isCached: false, isErrorFallback: true };
   }
 
@@ -590,11 +674,11 @@ export const getGeminiResponse = async (promptText, role, venueState, userProfil
       const result       = await model.generateContent(fullPrompt);
       const responseText = sanitizeGeminiOutput(result.response.text());
       setCache(cacheKey, responseText);
-      geminiMetrics.recordCall(Date.now() - startTime, false, false);
+      geminiMetrics.record({ durationMs: Date.now() - startTime, fromCache: false });
       return { text: responseText, isCached: false, isErrorFallback: false };
     } catch (error) {
-      console.error('Gemini API Error:', error);
-      geminiMetrics.recordCall(Date.now() - startTime, false, true);
+      console.error('[StadiumFlow AI] Gemini API Error:', error);
+      geminiMetrics.record({ durationMs: Date.now() - startTime, isError: true });
       const msg = error?.message || '';
       const errorText = msg.includes('429') || msg.includes('quota')
         ? '⚠️ Gemini rate limit reached. Please wait a moment and try again.'
