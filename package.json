@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "serve -s dist",
+    "gcp-build": "npm run build"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -19,6 +21,7 @@
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-router-dom": "^7.14.1",
+    "serve": "^14.2.6",
     "three": "^0.184.0"
   },
   "devDependencies": {
