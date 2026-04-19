@@ -7,16 +7,26 @@ export default defineConfig({
 
   build: {
     target: 'es2020',
-    minify: 'esbuild',
     sourcemap: false,
     chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-react':  ['react', 'react-dom', 'react-router-dom'],
-          'vendor-motion': ['framer-motion'],
-          'vendor-three':  ['three'],
-          'vendor-gemini': ['@google/generative-ai'],
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+              return 'vendor-react';
+            }
+            if (id.includes('framer-motion')) {
+              return 'vendor-motion';
+            }
+            if (id.includes('three')) {
+              return 'vendor-three';
+            }
+            if (id.includes('@google/generative-ai')) {
+              return 'vendor-gemini';
+            }
+            return 'vendor';
+          }
         },
       },
     },
